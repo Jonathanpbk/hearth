@@ -5,6 +5,7 @@ import { LightCard } from "../components/widgets/LightCard";
 import { SwitchCard } from "../components/widgets/SwitchCard";
 import { SceneCard } from "../components/widgets/SceneCard";
 import { ScriptCard } from "../components/widgets/ScriptCard";
+import { SensorCard } from "../components/widgets/SensorCard";
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
@@ -72,7 +73,10 @@ export function DashboardView() {
         <section>
           <SectionLabel>Sensors</SectionLabel>
           <DashboardGrid>
-            {/* SensorCards → Step 10 */}
+            {/* Replace these entity IDs with your own */}
+            <SensorCard entityId="sensor.downstairs_temperature_2" />
+            <SensorCard entityId="sensor.downstairs_humidity_2" />
+            <SensorCard entityId="sensor.jonathans_iphone_battery_level" />
           </DashboardGrid>
         </section>
 
