@@ -58,3 +58,25 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
+
+/* ── Sensor card flip ───────────────────────────────────────────── */
+.flip-card-scene {
+  perspective: 800px;
+}
+.flip-card-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s ease;
+}
+.flip-card-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-card-back {
+  transform: rotateY(180deg);
+}
