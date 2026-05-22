@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./store/useSettingsStore";
 import { initConnection } from "./lib/ha-connection";
 import { useWakeLock } from "./hooks/useWakeLock";
+import { useCameraEvent } from "./hooks/useCameraEvent";
 import { CameraOverlay } from "./components/camera/CameraOverlay";
 import { DashboardView } from "./views/DashboardView";
 import { SettingsView } from "./views/SettingsView";
@@ -36,11 +37,17 @@ function WakeLockManager() {
   return null;
 }
 
+function CameraEventManager() {
+  useCameraEvent();
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <HAConnectionManager />
       <WakeLockManager />
+      <CameraEventManager />
       <Routes>
         <Route
           path="/"
