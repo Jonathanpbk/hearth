@@ -65,7 +65,7 @@ export function SensorCard({ entityId }: Props) {
     void fetchHistory(baseUrl, haToken, entityId).then(setHistory);
   }, [entityId, baseUrl, haToken, connectionStatus]);
 
-  if (!entity) return null;
+  if (!entity) return <div className="h-40 rounded-2xl border border-white/[0.04] bg-[var(--color-surface)]" />;
 
   const name = (entity.attributes.friendly_name as string | undefined) ?? entityId;
   const unit = entity.attributes.unit_of_measurement as string | undefined;

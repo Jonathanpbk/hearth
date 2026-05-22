@@ -3,7 +3,7 @@ import { Sunset } from "lucide-react";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { activateScene } from "../../lib/ha-service";
-import { interactiveCardClass } from "../../lib/styles";
+import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
@@ -13,12 +13,12 @@ export function SceneCard({ entityId }: Props) {
   const entity = useHAEntity(entityId);
   const [activated, setActivated] = useState(false);
 
-  if (!entity) return null;
+  if (!entity) return <div className={skeletonCardClass} />;
 
   const name = (entity.attributes.friendly_name as string | undefined) ?? entityId;
 
   function handleActivate() {
-    void activateScene(getConnection(), entityId);
+    try { void activateScene(getConnection(), entityId); } catch { /* disconnected */ }
     setActivated(true);
     setTimeout(() => setActivated(false), 600);
   }

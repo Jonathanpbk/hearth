@@ -47,12 +47,15 @@ export function CameraOverlay() {
       onClick={dismiss}
     >
       {/* Stream — only mounted while visible to manage connection lifecycle */}
-      {visible && (
+      {visible && go2rtcUrl && (
         <WebRTCVideo
           go2rtcUrl={go2rtcUrl}
           streamName={streamName}
           mode={streamMode}
         />
+      )}
+      {visible && !go2rtcUrl && (
+        <p className="text-sm text-white/40">Camera URL not configured</p>
       )}
 
       {/* Dismiss button */}

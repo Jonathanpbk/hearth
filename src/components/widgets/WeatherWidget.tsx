@@ -147,7 +147,7 @@ export function WeatherWidget() {
         <div className="flex-1 min-w-0">
           <div className="flex items-start leading-none">
             <span className="text-5xl font-semibold tabular-nums text-white">
-              {Math.round(attrs.temperature)}
+              {attrs.temperature != null ? Math.round(attrs.temperature) : "—"}
             </span>
             <span className="text-2xl font-medium text-white/70 mt-1 ml-0.5">
               {attrs.temperature_unit ?? "°"}

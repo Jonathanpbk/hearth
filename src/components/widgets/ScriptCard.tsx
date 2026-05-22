@@ -3,7 +3,7 @@ import { Play, Loader2 } from "lucide-react";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { runScript } from "../../lib/ha-service";
-import { interactiveCardClass } from "../../lib/styles";
+import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
@@ -13,14 +13,14 @@ export function ScriptCard({ entityId }: Props) {
   const entity = useHAEntity(entityId);
   const [triggered, setTriggered] = useState(false);
 
-  if (!entity) return null;
+  if (!entity) return <div className={skeletonCardClass} />;
 
   const isRunning = entity.state === "on";
   const name = (entity.attributes.friendly_name as string | undefined) ?? entityId;
 
   function handleRun() {
     if (isRunning) return;
-    void runScript(getConnection(), entityId);
+    try { void runScript(getConnection(), entityId); } catch { /* disconnected */ }
     setTriggered(true);
     setTimeout(() => setTriggered(false), 600);
   }

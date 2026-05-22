@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { toggle } from "../../lib/ha-service";
-import { interactiveCardClass } from "../../lib/styles";
+import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
@@ -19,15 +20,22 @@ function relativeTime(iso: string): string {
 
 export function SwitchCard({ entityId }: Props) {
   const entity = useHAEntity(entityId);
+  const [, setTick] = useState(0);
 
-  if (!entity) return null;
+  // Re-render every 60 s so the relative timestamp stays current
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!entity) return <div className={skeletonCardClass} />;
 
   const isOn = entity.state === "on";
   const name =
     (entity.attributes.friendly_name as string | undefined) ?? entityId;
 
   function handleToggle() {
-    void toggle(getConnection(), entityId);
+    try { void toggle(getConnection(), entityId); } catch { /* disconnected */ }
   }
 
   return (

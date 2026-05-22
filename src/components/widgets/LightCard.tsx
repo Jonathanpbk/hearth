@@ -3,7 +3,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { toggle, setBrightness, setColorTemp } from "../../lib/ha-service";
-import { interactiveCardClass } from "../../lib/styles";
+import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
@@ -33,7 +33,7 @@ export function LightCard({ entityId }: Props) {
     }
   }, [expanded]);
 
-  if (!entity) return null;
+  if (!entity) return <div className={skeletonCardClass} />;
 
   const isOn = entity.state === "on";
   const attrs = entity.attributes;
@@ -67,7 +67,7 @@ export function LightCard({ entityId }: Props) {
 
   function handleToggle(e: React.MouseEvent) {
     e.stopPropagation();
-    void toggle(getConnection(), entityId);
+    try { void toggle(getConnection(), entityId); } catch { /* disconnected */ }
   }
 
   function handleExpand(e: React.MouseEvent) {
@@ -79,7 +79,7 @@ export function LightCard({ entityId }: Props) {
     setLocalBrightness(value);
     if (brightnessTimer.current) clearTimeout(brightnessTimer.current);
     brightnessTimer.current = setTimeout(() => {
-      void setBrightness(getConnection(), entityId, value);
+      try { void setBrightness(getConnection(), entityId, value); } catch { /* disconnected */ }
     }, 150);
   }
 
@@ -87,7 +87,7 @@ export function LightCard({ entityId }: Props) {
     setLocalColorTemp(value);
     if (colorTempTimer.current) clearTimeout(colorTempTimer.current);
     colorTempTimer.current = setTimeout(() => {
-      void setColorTemp(getConnection(), entityId, value);
+      try { void setColorTemp(getConnection(), entityId, value); } catch { /* disconnected */ }
     }, 150);
   }
 

@@ -3,3 +3,6 @@ export const cardClass =
 
 export const interactiveCardClass =
   `${cardClass} hover:border-white/[0.16] cursor-pointer active:scale-95`;
+
+export const skeletonCardClass =
+  "bg-[var(--color-surface)] border border-white/[0.04] rounded-2xl p-4";
