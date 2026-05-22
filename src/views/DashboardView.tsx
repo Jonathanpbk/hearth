@@ -3,6 +3,8 @@ import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { WeatherWidget } from "../components/widgets/WeatherWidget";
 import { LightCard } from "../components/widgets/LightCard";
 import { SwitchCard } from "../components/widgets/SwitchCard";
+import { SceneCard } from "../components/widgets/SceneCard";
+import { ScriptCard } from "../components/widgets/ScriptCard";
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
@@ -58,7 +60,11 @@ export function DashboardView() {
         <section>
           <SectionLabel>Scenes</SectionLabel>
           <DashboardGrid>
-            {/* SceneCards → Step 9 */}
+            {/* Replace these entity IDs with your own */}
+            <SceneCard entityId="scene.day" />
+            <SceneCard entityId="scene.chill" />
+            <ScriptCard entityId="script.mood_lights" />
+			<ScriptCard entityId="script.ags_fan_position" />
           </DashboardGrid>
         </section>
 
