@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Sun,
@@ -15,7 +16,9 @@ import {
   Droplets,
 } from "lucide-react";
 import { useHAEntity } from "../../hooks/useHAEntity";
+import { useEntityStore } from "../../store/useEntityStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { getConnection } from "../../lib/ha-connection";
 import { cardClass } from "../../lib/styles";
 import type { WeatherEntityAttributes, WeatherForecastDay } from "../../types/weather";
 
@@ -67,15 +70,55 @@ function ForecastDay({ day }: { day: WeatherForecastDay }) {
         {Math.round(day.temperature)}°
       </span>
       <span className="text-[11px] text-white/30 tabular-nums">
-        {Math.round(day.templow)}°
+        {Math.round(day.templow ?? day.temperature)}°
       </span>
     </div>
   );
 }
 
+// In HA 2024.3+, forecast was removed from entity attributes and must be
+// fetched via the weather/subscribe_forecast WebSocket subscription.
+function useWeatherForecast(entityId: string): WeatherForecastDay[] {
+  const [forecast, setForecast] = useState<WeatherForecastDay[]>([]);
+  const connectionStatus = useEntityStore((s) => s.connectionStatus);
+
+  useEffect(() => {
+    if (connectionStatus !== "connected" || !entityId) return;
+
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const conn = getConnection();
+        unsub = await conn.subscribeMessage<{ forecast: WeatherForecastDay[] }>(
+          (msg) => {
+            if (!cancelled) setForecast(msg.forecast ?? []);
+          },
+          {
+            type: "weather/subscribe_forecast",
+            entity_id: entityId,
+            forecast_type: "daily",
+          }
+        );
+      } catch {
+        // Endpoint absent on older HA — attribute-based fallback used instead
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, [entityId, connectionStatus]);
+
+  return forecast;
+}
+
 export function WeatherWidget() {
   const weatherEntityId = useSettingsStore((s) => s.settings.weatherEntityId);
   const entity = useHAEntity(weatherEntityId);
+  const subscriptionForecast = useWeatherForecast(weatherEntityId);
 
   if (!entity) {
     return (
@@ -91,7 +134,11 @@ export function WeatherWidget() {
 
   const attrs = entity.attributes as unknown as WeatherEntityAttributes;
   const condition = entity.state;
-  const forecast = attrs.forecast ?? [];
+  // Prefer subscription forecast (modern HA); fall back to attribute (older HA)
+  const forecast =
+    subscriptionForecast.length > 0
+      ? subscriptionForecast
+      : (attrs.forecast ?? []);
 
   return (
     <div className={`${cardClass} md:col-span-2`}>

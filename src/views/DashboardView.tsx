@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { WeatherWidget } from "../components/widgets/WeatherWidget";
+import { LightCard } from "../components/widgets/LightCard";
+import { SwitchCard } from "../components/widgets/SwitchCard";
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
@@ -35,7 +37,10 @@ export function DashboardView() {
         <section>
           <SectionLabel>Lights</SectionLabel>
           <DashboardGrid>
-            {/* LightCards → Step 8 */}
+            {/* Replace these entity IDs with your own */}
+            <LightCard entityId="light.main_lights_test" />
+            <LightCard entityId="light.back_lights_test" />
+            <LightCard entityId="light.example_light_3" />
           </DashboardGrid>
         </section>
 
@@ -43,7 +48,9 @@ export function DashboardView() {
         <section>
           <SectionLabel>Switches</SectionLabel>
           <DashboardGrid>
-            {/* SwitchCards → Step 8 */}
+            {/* Replace these entity IDs with your own */}
+            <SwitchCard entityId="switch.dreo_horizontally_oscillating" />
+            <SwitchCard entityId="switch.dreo_vertically_oscillating" />
           </DashboardGrid>
         </section>
 
