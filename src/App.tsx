@@ -4,8 +4,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./store/useSettingsStore";
 import { initConnection } from "./lib/ha-connection";
 import { useWakeLock } from "./hooks/useWakeLock";
+import { CameraOverlay } from "./components/camera/CameraOverlay";
 import { DashboardView } from "./views/DashboardView";
 import { SettingsView } from "./views/SettingsView";
+import { TestCameraView } from "./views/TestCameraView";
 
 function HAConnectionManager() {
   const haLocalUrl = useSettingsStore((s) => s.settings.haLocalUrl);
@@ -49,8 +51,10 @@ export default function App() {
           }
         />
         <Route path="/settings" element={<SettingsView />} />
+        <Route path="/test-camera" element={<TestCameraView />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <CameraOverlay />
     </BrowserRouter>
   );
 }

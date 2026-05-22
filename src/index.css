@@ -59,6 +59,17 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
+/* ── Test camera iframe — clips the go2rtc control bar ─────────── */
+.test-camera-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* Extra height pushes the control bar below the overflow-hidden boundary */
+  height: calc(100% + 56px);
+  border: none;
+}
+
 /* ── Sensor card flip ───────────────────────────────────────────── */
 .flip-card-scene {
   perspective: 800px;
