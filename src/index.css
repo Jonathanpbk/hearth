@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg:        #0a0a0a;
+  --color-surface:   #111111;
+  --color-surface-2: #1a1a1a;
+  --color-border:    rgba(255, 255, 255, 0.08);
+  --color-text:      #f0f0f0;
+  --color-muted:     rgba(255, 255, 255, 0.4);
+  --color-accent:    #3b82f6;
+  --color-success:   #22c55e;
+  --color-warning:   #f59e0b;
+  --color-danger:    #ef4444;
+}
+
+html,
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
