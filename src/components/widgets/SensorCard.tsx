@@ -7,6 +7,7 @@ import { useEntityStore } from "../../store/useEntityStore";
 
 interface Props {
   entityId: string;
+  titleOverride?: string;
 }
 
 interface HistoryPoint {
@@ -45,7 +46,7 @@ function getBatteryColor(value: number): string {
   return "text-red-400";
 }
 
-export function SensorCard({ entityId }: Props) {
+export function SensorCard({ entityId, titleOverride }: Props) {
   const entity = useHAEntity(entityId);
   const [flipped, setFlipped] = useState(false);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
@@ -65,9 +66,9 @@ export function SensorCard({ entityId }: Props) {
     void fetchHistory(baseUrl, haToken, entityId).then(setHistory);
   }, [entityId, baseUrl, haToken, connectionStatus]);
 
-  if (!entity) return <div className="h-40 rounded-2xl border border-white/[0.04] bg-[var(--color-surface)]" />;
+  if (!entity) return <div className="h-full rounded-2xl border border-white/[0.04] bg-[var(--color-surface)]" />;
 
-  const name = (entity.attributes.friendly_name as string | undefined) ?? entityId;
+  const name = titleOverride ?? (entity.attributes.friendly_name as string | undefined) ?? entityId;
   const unit = entity.attributes.unit_of_measurement as string | undefined;
   const deviceClass = entity.attributes.device_class as string | undefined;
   const numValue = parseFloat(entity.state);
@@ -90,7 +91,7 @@ export function SensorCard({ entityId }: Props) {
 
   return (
     <div
-      className="h-40 rounded-2xl border border-white/[0.08] hover:border-white/[0.16] cursor-pointer flip-card-scene transition-colors duration-200"
+      className="h-full rounded-2xl border border-white/[0.08] hover:border-white/[0.16] cursor-pointer flip-card-scene transition-colors duration-200"
       onClick={() => setFlipped((f) => !f)}
     >
       <div className={`flip-card-inner h-full${flipped ? " is-flipped" : ""}`}>

@@ -6,6 +6,7 @@ import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
+  titleOverride?: string;
 }
 
 function relativeTime(iso: string): string {
@@ -18,7 +19,7 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export function SwitchCard({ entityId }: Props) {
+export function SwitchCard({ entityId, titleOverride }: Props) {
   const entity = useHAEntity(entityId);
   const [, setTick] = useState(0);
 
@@ -32,7 +33,7 @@ export function SwitchCard({ entityId }: Props) {
 
   const isOn = entity.state === "on";
   const name =
-    (entity.attributes.friendly_name as string | undefined) ?? entityId;
+    titleOverride ?? (entity.attributes.friendly_name as string | undefined) ?? entityId;
 
   function handleToggle() {
     try { void toggle(getConnection(), entityId); } catch { /* disconnected */ }

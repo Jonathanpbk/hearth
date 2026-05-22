@@ -1,3 +1,5 @@
+import type { Page } from "./dashboard";
+
 export interface Settings {
   haLocalUrl: string;
   haRemoteUrl: string;
@@ -9,6 +11,7 @@ export interface Settings {
   cameraDefaultDuration: number;
   wakeLockEnabled: boolean;
   clockFormat: "12h" | "24h";
+  pages: Page[];
 }
 
 export const defaultSettings: Settings = {
@@ -22,4 +25,5 @@ export const defaultSettings: Settings = {
   cameraDefaultDuration: 10000,
   wakeLockEnabled: true,
   clockFormat: "12h",
+  pages: [{ id: "default", name: "Home", cards: [], layout: [] }],
 };

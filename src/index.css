@@ -59,15 +59,21 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Test camera iframe — clips the go2rtc control bar ─────────── */
-.test-camera-iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  /* Extra height pushes the control bar below the overflow-hidden boundary */
-  height: calc(100% + 56px);
-  border: none;
+/* ── react-grid-layout overrides ───────────────────────────────── */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(59, 130, 246, 0.12);
+  border-radius: 1rem;
+  border: 1px dashed rgba(59, 130, 246, 0.35);
+  opacity: 1;
+}
+/* Resize handle — dark-mode corner grip */
+.react-grid-item > .react-resizable-handle::after {
+  border-right-color: rgba(255, 255, 255, 0.35);
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+/* Hide resize handles when not in edit mode */
+[data-edit="false"] .react-resizable-handle {
+  display: none !important;
 }
 
 /* ── Sensor card flip ───────────────────────────────────────────── */

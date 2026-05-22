@@ -7,15 +7,16 @@ import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
+  titleOverride?: string;
 }
 
-export function SceneCard({ entityId }: Props) {
+export function SceneCard({ entityId, titleOverride }: Props) {
   const entity = useHAEntity(entityId);
   const [activated, setActivated] = useState(false);
 
   if (!entity) return <div className={skeletonCardClass} />;
 
-  const name = (entity.attributes.friendly_name as string | undefined) ?? entityId;
+  const name = titleOverride ?? (entity.attributes.friendly_name as string | undefined) ?? entityId;
 
   function handleActivate() {
     try { void activateScene(getConnection(), entityId); } catch { /* disconnected */ }

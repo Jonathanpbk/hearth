@@ -7,9 +7,10 @@ import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
 
 interface Props {
   entityId: string;
+  titleOverride?: string;
 }
 
-export function LightCard({ entityId }: Props) {
+export function LightCard({ entityId, titleOverride }: Props) {
   const entity = useHAEntity(entityId);
   const [expanded, setExpanded] = useState(false);
   const [localBrightness, setLocalBrightness] = useState<number | null>(null);
@@ -37,7 +38,7 @@ export function LightCard({ entityId }: Props) {
 
   const isOn = entity.state === "on";
   const attrs = entity.attributes;
-  const name = (attrs.friendly_name as string | undefined) ?? entityId;
+  const name = titleOverride ?? (attrs.friendly_name as string | undefined) ?? entityId;
 
   const brightness = attrs.brightness as number | undefined;
   const displayBrightness = localBrightness ?? brightness;
