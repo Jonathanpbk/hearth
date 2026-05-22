@@ -1,0 +1,9 @@
+services:
+  hearth:
+    build: .
+    container_name: hearth
+    restart: unless-stopped
+    ports:
+      - "3080:80"
+    labels:
+      - "com.unraid.description=Hearth — Home Assistant Dashboard PWA"
