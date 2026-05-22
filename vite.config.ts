@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "icons/*.png"],
+      includeAssets: ["favicon.svg", "favicon.png", "apple-touch-icon.png", "icons/*.png"],
       manifest: {
         name: "Hearth",
         short_name: "Hearth",
@@ -30,6 +30,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /\/api\//,
