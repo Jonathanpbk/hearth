@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --color-bg:        #0a0a0a;
-  --color-surface:   #111111;
-  --color-surface-2: #1a1a1a;
+  --color-bg:        #1c1c1e;
+  --color-surface:   #2c2c2e;
+  --color-surface-2: #3a3a3c;
   --color-border:    rgba(255, 255, 255, 0.08);
   --color-text:      #f0f0f0;
   --color-muted:     rgba(255, 255, 255, 0.4);
-  --color-accent:    #3b82f6;
+  --color-accent:    #ffc174;
   --color-success:   #22c55e;
   --color-warning:   #f59e0b;
   --color-danger:    #ef4444;
@@ -45,7 +45,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-accent);
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
@@ -54,22 +54,26 @@ input[type="range"]::-moz-range-thumb {
   height: 14px;
   border: none;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-accent);
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* ── react-grid-layout overrides ───────────────────────────────── */
 .react-grid-item.react-grid-placeholder {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(255, 193, 116, 0.10);
   border-radius: 1rem;
-  border: 1px dashed rgba(59, 130, 246, 0.35);
+  border: 1px dashed rgba(255, 193, 116, 0.35);
   opacity: 1;
 }
-/* Resize handle — dark-mode corner grip */
+/* Resize handle — accent corner grip */
 .react-grid-item > .react-resizable-handle::after {
-  border-right-color: rgba(255, 255, 255, 0.35);
-  border-bottom-color: rgba(255, 255, 255, 0.35);
+  border-right-color: rgba(255, 193, 116, 0.45);
+  border-bottom-color: rgba(255, 193, 116, 0.45);
 }
 /* Hide resize handles when not in edit mode */
 [data-edit="false"] .react-resizable-handle {

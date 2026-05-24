@@ -106,8 +106,10 @@ export function SettingsPage() {
         <DisplaySettings
           wakeLockEnabled={form.wakeLockEnabled}
           clockFormat={form.clockFormat}
+          showDock={form.showDock}
           onWakeLockChange={(v) => handleChange("wakeLockEnabled", v)}
           onClockFormatChange={(v) => handleChange("clockFormat", v)}
+          onShowDockChange={(v) => handleChange("showDock", v)}
         />
 
         <button

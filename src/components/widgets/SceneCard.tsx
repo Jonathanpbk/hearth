@@ -27,13 +27,13 @@ export function SceneCard({ entityId, titleOverride }: Props) {
   return (
     <div
       onClick={handleActivate}
-      className={`${interactiveCardClass} ${activated ? "bg-green-500/10 border-green-500/30" : ""}`}
+      className={`${interactiveCardClass} ${activated ? "bg-[#ffc174]/10 border-[#ffc174]/30" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-white truncate flex-1">{name}</p>
         <Sunset
           className={`h-4 w-4 shrink-0 transition-colors ${
-            activated ? "text-green-400" : "text-white/25"
+            activated ? "text-[#ffc174]" : "text-white/25"
           }`}
         />
       </div>

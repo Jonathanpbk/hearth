@@ -138,14 +138,14 @@ export function SensorCard({ entityId, titleOverride }: Props) {
                 <AreaChart data={history} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#ffc174" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#ffc174" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <Area
                     type="monotone"
                     dataKey="v"
-                    stroke="#3b82f6"
+                    stroke="#ffc174"
                     strokeWidth={1.5}
                     fill={`url(#${gradId})`}
                     dot={false}

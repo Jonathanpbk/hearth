@@ -100,3 +100,19 @@ export function setColorTemp(
     { entity_id: entityId }
   );
 }
+
+export function setFanPercentage(
+  connection: Connection,
+  entityId: string,
+  percentage: number
+): Promise<unknown> {
+  return haCallService(connection, "fan", "set_percentage", { percentage }, { entity_id: entityId });
+}
+
+export function setFanPresetMode(
+  connection: Connection,
+  entityId: string,
+  presetMode: string
+): Promise<unknown> {
+  return haCallService(connection, "fan", "set_preset_mode", { preset_mode: presetMode }, { entity_id: entityId });
+}

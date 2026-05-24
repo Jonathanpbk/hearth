@@ -9,6 +9,8 @@ interface SettingsStore {
   addPage: (name: string, id?: string) => void;
   deletePage: (id: string) => void;
   renamePage: (id: string, name: string) => void;
+  updatePageMeta: (id: string, name: string, icon: string) => void;
+  reorderPages: (orderedIds: string[]) => void;
   addCard: (pageId: string, card: CardConfig, layout: StoredLayoutItem) => void;
   removeCard: (pageId: string, cardId: string) => void;
   updateCard: (pageId: string, card: CardConfig) => void;
@@ -16,7 +18,9 @@ interface SettingsStore {
 }
 
 function pagesOr(p: Partial<Settings>): Page[] {
-  return p.pages?.length ? p.pages : defaultSettings.pages;
+  if (!p.pages?.length) return defaultSettings.pages;
+  // Backfill `icon` for pages saved before the field existed.
+  return p.pages.map((page) => ({ ...page, icon: page.icon || "LayoutDashboard" }));
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -31,6 +35,7 @@ export const useSettingsStore = create<SettingsStore>()(
           const newPage: Page = {
             id: id ?? crypto.randomUUID(),
             name,
+            icon: "LayoutDashboard",
             cards: [],
             layout: [],
           };
@@ -59,6 +64,30 @@ export const useSettingsStore = create<SettingsStore>()(
             ),
           },
         })),
+
+      updatePageMeta: (id, name, icon) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            pages: state.settings.pages.map((p) =>
+              p.id === id ? { ...p, name, icon } : p
+            ),
+          },
+        })),
+
+      reorderPages: (orderedIds) =>
+        set((state) => {
+          const pageMap = new Map(state.settings.pages.map((p) => [p.id, p]));
+          return {
+            settings: {
+              ...state.settings,
+              pages: orderedIds.flatMap((id) => {
+                const p = pageMap.get(id);
+                return p ? [p] : [];
+              }),
+            },
+          };
+        }),
 
       addCard: (pageId, card, layout) =>
         set((state) => ({

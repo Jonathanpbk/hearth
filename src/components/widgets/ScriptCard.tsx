@@ -31,14 +31,14 @@ export function ScriptCard({ entityId, titleOverride }: Props) {
   return (
     <div
       onClick={handleRun}
-      className={`${interactiveCardClass} ${flash ? "bg-green-500/10 border-green-500/30" : ""}`}
+      className={`${interactiveCardClass} ${flash ? "bg-[#ffc174]/10 border-[#ffc174]/30" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-white truncate flex-1">{name}</p>
         {isRunning ? (
-          <Loader2 className={`h-4 w-4 shrink-0 animate-spin ${flash ? "text-green-400" : "text-white/50"}`} />
+          <Loader2 className={`h-4 w-4 shrink-0 animate-spin ${flash ? "text-[#ffc174]" : "text-white/50"}`} />
         ) : (
-          <Play className={`h-4 w-4 shrink-0 transition-colors ${flash ? "text-green-400" : "text-white/25"}`} />
+          <Play className={`h-4 w-4 shrink-0 transition-colors ${flash ? "text-[#ffc174]" : "text-white/25"}`} />
         )}
       </div>
     </div>

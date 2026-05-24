@@ -1,8 +1,10 @@
 interface Props {
   wakeLockEnabled: boolean;
   clockFormat: "12h" | "24h";
+  showDock: boolean;
   onWakeLockChange: (v: boolean) => void;
   onClockFormatChange: (v: "12h" | "24h") => void;
+  onShowDockChange: (v: boolean) => void;
 }
 
 const labelClass = "block text-xs uppercase tracking-widest text-white/40 mb-1.5";
@@ -35,8 +37,10 @@ function Toggle({
 export function DisplaySettings({
   wakeLockEnabled,
   clockFormat,
+  showDock,
   onWakeLockChange,
   onClockFormatChange,
+  onShowDockChange,
 }: Props) {
   return (
     <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-6 space-y-5">
@@ -71,6 +75,16 @@ export function DisplaySettings({
           </p>
         </div>
         <Toggle value={wakeLockEnabled} onChange={onWakeLockChange} />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white">Show Navigation Dock</p>
+          <p className="text-xs text-white/40 mt-0.5">
+            Show the floating page dock at the bottom of the dashboard
+          </p>
+        </div>
+        <Toggle value={showDock} onChange={onShowDockChange} />
       </div>
     </div>
   );

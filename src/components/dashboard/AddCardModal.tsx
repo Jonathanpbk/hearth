@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sun, ToggleLeft, Sunset, Play, Activity, Cloud } from "lucide-react";
+import { Sun, ToggleLeft, Sunset, Play, Activity, Cloud, Clock, Wind, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Modal } from "./Modal";
 import { useEntityStore } from "../../store/useEntityStore";
@@ -7,13 +7,19 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { CARD_DEFAULTS, CARD_DOMAIN, nextRowY, type CardType } from "../../types/dashboard";
 
 const CARD_TYPE_META: { type: CardType; label: string; Icon: LucideIcon; description: string }[] = [
-  { type: "light",   label: "Light",   Icon: Sun,        description: "Control brightness & colour" },
-  { type: "switch",  label: "Switch",  Icon: ToggleLeft, description: "Toggle on / off" },
-  { type: "scene",   label: "Scene",   Icon: Sunset,     description: "Activate a scene" },
-  { type: "script",  label: "Script",  Icon: Play,       description: "Run a script" },
-  { type: "sensor",  label: "Sensor",  Icon: Activity,   description: "Show a sensor value" },
-  { type: "weather", label: "Weather", Icon: Cloud,       description: "Current weather & forecast" },
+  { type: "clock-weather", label: "Clock & Weather", Icon: Clock,      description: "Clock + live weather widget" },
+  { type: "dreo-fan",      label: "Dreo Fan",        Icon: Wind,       description: "Fan controls + position presets" },
+  { type: "scenes",        label: "Scenes",          Icon: Sparkles,   description: "Quick scene launcher" },
+  { type: "light",         label: "Light",           Icon: Sun,        description: "Control brightness & colour" },
+  { type: "switch",        label: "Switch",          Icon: ToggleLeft, description: "Toggle on / off" },
+  { type: "scene",         label: "Scene",           Icon: Sunset,     description: "Activate a scene" },
+  { type: "script",        label: "Script",          Icon: Play,       description: "Run a script" },
+  { type: "sensor",        label: "Sensor",          Icon: Activity,   description: "Show a sensor value" },
+  { type: "weather",       label: "Weather",         Icon: Cloud,      description: "Current weather & forecast" },
 ];
+
+// Card types that don't require an entity — added to the grid immediately.
+const ENTITY_FREE: CardType[] = ["weather", "clock-weather", "dreo-fan", "scenes"];
 
 interface Props {
   pageId: string;
@@ -39,13 +45,8 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
     onClose();
   }
 
-  // Weather card doesn't need an entity picker — add immediately
-  function handleWeather() {
-    handleAdd("weather", "");
-  }
-
   const filteredEntities =
-    selectedType && selectedType !== "weather"
+    selectedType && !ENTITY_FREE.includes(selectedType)
       ? Object.entries(entities)
           .filter(([id]) => id.startsWith(CARD_DOMAIN[selectedType] + "."))
           .filter(([id, e]) => {
@@ -67,7 +68,9 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
           {CARD_TYPE_META.map(({ type, label, Icon, description }) => (
             <button
               key={type}
-              onClick={() => (type === "weather" ? handleWeather() : setSelectedType(type))}
+              onClick={() =>
+                ENTITY_FREE.includes(type) ? handleAdd(type, "") : setSelectedType(type)
+              }
               className="flex flex-col items-start gap-1.5 p-3 rounded-xl border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.04] transition-colors text-left"
             >
               <Icon className="h-5 w-5 text-white/50" />
@@ -115,7 +118,7 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
                   <span
                     className={`text-xs shrink-0 tabular-nums ${
                       entity.state === "on"
-                        ? "text-green-400"
+                        ? "text-[#ffc174]"
                         : entity.state === "off"
                         ? "text-white/25"
                         : "text-white/40"

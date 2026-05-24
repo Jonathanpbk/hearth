@@ -11,6 +11,7 @@ export interface Settings {
   cameraDefaultDuration: number;
   wakeLockEnabled: boolean;
   clockFormat: "12h" | "24h";
+  showDock: boolean;
   pages: Page[];
 }
 
@@ -25,5 +26,6 @@ export const defaultSettings: Settings = {
   cameraDefaultDuration: 10000,
   wakeLockEnabled: true,
   clockFormat: "12h",
-  pages: [{ id: "default", name: "Home", cards: [], layout: [] }],
+  showDock: true,
+  pages: [{ id: "default", name: "Home", icon: "LayoutDashboard", cards: [], layout: [] }],
 };

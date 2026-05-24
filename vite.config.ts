@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "favicon.png", "apple-touch-icon.png", "icons/*.png"],
+      includeAssets: ["favicon.ico", "favicon-16.png", "favicon-32.png", "apple-touch-icon.png", "icons/*.png"],
       manifest: {
         name: "Hearth",
         short_name: "Hearth",
@@ -26,6 +26,7 @@ export default defineConfig({
             type: "image/png",
             purpose: "maskable",
           },
+          { src: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
         ],
       },
       workbox: {
