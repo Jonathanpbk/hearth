@@ -93,6 +93,24 @@ function DimManager() {
     if (!isDimmed) startTimer();
   }, [isDimmed, autoDim, startTimer]);
 
+  // Manage data-dim on <body> to block card pointer-events via CSS.
+  // When dimmed: set immediately. When undimmed: remove after 300ms so the
+  // wakeup touch has fully completed before cards become interactive again.
+  const unblockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (unblockTimerRef.current) clearTimeout(unblockTimerRef.current);
+    if (isDimmed) {
+      document.body.setAttribute("data-dim", "true");
+    } else {
+      unblockTimerRef.current = setTimeout(() => {
+        document.body.removeAttribute("data-dim");
+      }, 300);
+    }
+    return () => {
+      if (unblockTimerRef.current) clearTimeout(unblockTimerRef.current);
+    };
+  }, [isDimmed]);
+
   return null;
 }
 
