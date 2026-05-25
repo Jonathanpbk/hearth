@@ -181,7 +181,7 @@ export function DashboardGrid({
         onResizeStop={handleResizeStop}
       >
         {cards.map((card) => (
-          <div key={card.id} style={{ height: "100%", overflow: "hidden" }}>
+          <div key={card.id} style={{ height: "100%", background: "transparent" }}>
             <CardWrapper
               editMode={editMode}
               onEdit={() => onEditCard(card)}

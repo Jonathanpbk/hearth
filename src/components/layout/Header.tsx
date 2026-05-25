@@ -44,7 +44,6 @@ export function Header() {
       {/* Left — flame + wordmark */}
       <div className="flex items-center gap-1.5 select-none">
         <img src="/images/hearth-logo.png" alt="Hearth" className="h-7 w-7 object-contain" />
-        <span className="text-sm font-semibold tracking-wide text-white">Hearth</span>
       </div>
 
       {/* Right — connection + edit + install + settings */}

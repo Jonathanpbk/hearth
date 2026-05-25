@@ -78,7 +78,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const tintAlpha = isOn ? 0.07 + brightFactor * 0.16 : 0;
 
   const glowStyle: React.CSSProperties = {
-    boxShadow: isOn ? "0 0 16px rgba(255, 193, 116, 0.15)" : undefined,
+    boxShadow: isOn ? "0 0 8px rgba(255, 193, 116, 0.12)" : undefined,
   };
   const tintStyle: React.CSSProperties = {
     backgroundColor: `rgba(${r}, ${g}, ${b}, ${tintAlpha})`,

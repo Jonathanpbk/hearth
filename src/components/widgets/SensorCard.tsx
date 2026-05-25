@@ -66,7 +66,7 @@ export function SensorCard({ entityId, titleOverride }: Props) {
     void fetchHistory(baseUrl, haToken, entityId).then(setHistory);
   }, [entityId, baseUrl, haToken, connectionStatus]);
 
-  if (!entity) return <div className="h-full rounded-2xl border border-white/[0.04] bg-[var(--color-surface)]" />;
+  if (!entity) return <div className="h-full rounded-2xl border border-white/[0.04] bg-[var(--color-surface)] overflow-hidden" />;
 
   const name = titleOverride ?? (entity.attributes.friendly_name as string | undefined) ?? entityId;
   const unit = entity.attributes.unit_of_measurement as string | undefined;
@@ -91,7 +91,7 @@ export function SensorCard({ entityId, titleOverride }: Props) {
 
   return (
     <div
-      className="h-full rounded-2xl border border-white/[0.08] hover:border-white/[0.16] cursor-pointer flip-card-scene transition-colors duration-200"
+      className="h-full rounded-2xl border border-white/[0.08] hover:border-white/[0.16] overflow-hidden cursor-pointer flip-card-scene transition-colors duration-200"
       onClick={() => setFlipped((f) => !f)}
     >
       <div className={`flip-card-inner h-full${flipped ? " is-flipped" : ""}`}>

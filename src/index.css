@@ -64,6 +64,9 @@ input[type="range"]:disabled {
 }
 
 /* ── react-grid-layout overrides ───────────────────────────────── */
+.react-grid-item {
+  background: transparent !important;
+}
 .react-grid-item.react-grid-placeholder {
   background: rgba(255, 193, 116, 0.10);
   border-radius: 1rem;

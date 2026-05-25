@@ -41,7 +41,7 @@ export function SwitchCard({ entityId, titleOverride }: Props) {
   return (
     <div
       onClick={handleToggle}
-      className={`h-full rounded-2xl border bg-[var(--color-surface)] p-4 cursor-pointer
+      className={`h-full rounded-2xl border bg-[var(--color-surface)] p-4 overflow-hidden cursor-pointer
         transition-all duration-300 flex flex-col
         ${isOn ? "border-white/[0.12]" : "border-white/[0.06] opacity-60"}
         hover:border-white/[0.18] active:scale-[0.98]`}
