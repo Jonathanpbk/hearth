@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { InteractiveCard } from "../InteractiveCard";
 import { TrendingUp, TrendingDown, RotateCcw } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { useHAEntity } from "../../hooks/useHAEntity";
@@ -90,7 +91,7 @@ export function SensorCard({ entityId, titleOverride }: Props) {
     "flip-card-face p-4 flex flex-col bg-[var(--color-surface)] rounded-2xl";
 
   return (
-    <div
+    <InteractiveCard
       className="h-full rounded-2xl border border-white/[0.08] hover:border-white/[0.16] overflow-hidden cursor-pointer flip-card-scene transition-colors duration-200"
       onClick={() => setFlipped((f) => !f)}
     >
@@ -162,6 +163,6 @@ export function SensorCard({ entityId, titleOverride }: Props) {
         </div>
 
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

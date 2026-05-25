@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { ArrowLeftRight, ArrowUpDown, Footprints, ChevronDown } from "lucide-react";
+import { InteractiveCard } from "../InteractiveCard";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { turnOn, turnOff, toggle, runScript, setFanPercentage, setFanPresetMode } from "../../lib/ha-service";
@@ -160,7 +161,7 @@ export function DreoFanCard() {
   }
 
   return (
-    <div
+    <InteractiveCard
       onClick={handleCardToggle}
       className="h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] overflow-hidden cursor-pointer"
     >
@@ -234,6 +235,6 @@ export function DreoFanCard() {
           />
         )}
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

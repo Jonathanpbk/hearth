@@ -20,6 +20,7 @@ import { useEntityStore } from "../../store/useEntityStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { getConnection } from "../../lib/ha-connection";
 import { cardClass } from "../../lib/styles";
+import { InteractiveCard } from "../InteractiveCard";
 import type { WeatherEntityAttributes, WeatherForecastDay } from "../../types/weather";
 
 const CONDITION_ICONS: Record<string, LucideIcon> = {
@@ -122,13 +123,13 @@ export function WeatherWidget() {
 
   if (!entity) {
     return (
-      <div
+      <InteractiveCard
         className={`${cardClass} md:col-span-2 min-h-[140px] flex items-center justify-center`}
       >
         <p className="text-xs text-white/30">
           {weatherEntityId ? "Weather unavailable" : "No weather entity configured"}
         </p>
-      </div>
+      </InteractiveCard>
     );
   }
 
@@ -141,7 +142,7 @@ export function WeatherWidget() {
       : (attrs.forecast ?? []);
 
   return (
-    <div className={`${cardClass} md:col-span-2`}>
+    <InteractiveCard className={`${cardClass} md:col-span-2`}>
       {/* Current conditions */}
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
@@ -186,6 +187,6 @@ export function WeatherWidget() {
           ))}
         </div>
       )}
-    </div>
+    </InteractiveCard>
   );
 }

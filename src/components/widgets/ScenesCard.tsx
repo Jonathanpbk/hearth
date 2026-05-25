@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InteractiveCard } from "../InteractiveCard";
 import { Sun, Sofa, Sparkles, Film, Palette, PowerOff } from "lucide-react";
 import { getConnection } from "../../lib/ha-connection";
 import { runScript } from "../../lib/ha-service";
@@ -22,7 +23,7 @@ export function ScenesCard() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] p-2 gap-1.5">
+    <InteractiveCard className="h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] p-2 gap-1.5">
       <p className="text-[10px] font-medium uppercase tracking-widest text-white/40 px-0.5 shrink-0">Scenes</p>
 
       <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1.5 min-h-0">
@@ -41,6 +42,6 @@ export function ScenesCard() {
           </button>
         ))}
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

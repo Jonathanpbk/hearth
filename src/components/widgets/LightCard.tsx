@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { RotateCcw, Sun, Thermometer } from "lucide-react";
+import { InteractiveCard } from "../InteractiveCard";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { toggle, setBrightness, setColorTemp } from "../../lib/ha-service";
@@ -109,7 +110,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const borderClass = isOn ? "border-white/[0.12]" : "border-white/[0.06]";
 
   return (
-    <div className="h-full" style={{ perspective: "900px" }}>
+    <InteractiveCard className="h-full" style={{ perspective: "900px" }}>
       <div
         style={{
           position: "relative",
@@ -214,6 +215,6 @@ export function LightCard({ entityId, titleOverride }: Props) {
         </div>
 
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

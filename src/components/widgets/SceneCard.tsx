@@ -4,6 +4,7 @@ import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { activateScene } from "../../lib/ha-service";
 import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
+import { InteractiveCard } from "../InteractiveCard";
 
 interface Props {
   entityId: string;
@@ -25,7 +26,7 @@ export function SceneCard({ entityId, titleOverride }: Props) {
   }
 
   return (
-    <div
+    <InteractiveCard
       onClick={handleActivate}
       className={`${interactiveCardClass} ${activated ? "bg-[#ffc174]/10 border-[#ffc174]/30" : ""}`}
     >
@@ -37,6 +38,6 @@ export function SceneCard({ entityId, titleOverride }: Props) {
           }`}
         />
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

@@ -4,6 +4,7 @@ import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { runScript } from "../../lib/ha-service";
 import { interactiveCardClass, skeletonCardClass } from "../../lib/styles";
+import { InteractiveCard } from "../InteractiveCard";
 
 interface Props {
   entityId: string;
@@ -29,7 +30,7 @@ export function ScriptCard({ entityId, titleOverride }: Props) {
   const flash = triggered || isRunning;
 
   return (
-    <div
+    <InteractiveCard
       onClick={handleRun}
       className={`${interactiveCardClass} ${flash ? "bg-[#ffc174]/10 border-[#ffc174]/30" : ""}`}
     >
@@ -41,6 +42,6 @@ export function ScriptCard({ entityId, titleOverride }: Props) {
           <Play className={`h-4 w-4 shrink-0 transition-colors ${flash ? "text-[#ffc174]" : "text-white/25"}`} />
         )}
       </div>
-    </div>
+    </InteractiveCard>
   );
 }

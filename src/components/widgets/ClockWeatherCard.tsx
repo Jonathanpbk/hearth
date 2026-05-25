@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { InteractiveCard } from "../InteractiveCard";
 import type { LucideIcon } from "lucide-react";
 import {
   Sun, Moon, Cloud, CloudSun, CloudMoon, CloudRain, CloudDrizzle,
@@ -114,7 +115,7 @@ export function ClockWeatherCard() {
     forecastDays.length > 0 ? Math.max(...forecastDays.map((d) => d.temperature)) : null;
 
   return (
-    <div
+    <InteractiveCard
       className="h-full bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] overflow-hidden"
       style={{ display: "grid", gridTemplateRows: "auto auto" }}
     >
@@ -187,6 +188,6 @@ export function ClockWeatherCard() {
           ))}
         </div>
       )}
-    </div>
+    </InteractiveCard>
   );
 }

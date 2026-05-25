@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useHAEntity } from "../../hooks/useHAEntity";
+import { InteractiveCard } from "../InteractiveCard";
 import { getConnection } from "../../lib/ha-connection";
 import { toggle } from "../../lib/ha-service";
 import { skeletonCardClass } from "../../lib/styles";
@@ -39,7 +40,7 @@ export function SwitchCard({ entityId, titleOverride }: Props) {
   }
 
   return (
-    <div
+    <InteractiveCard
       onClick={handleToggle}
       className={`h-full rounded-2xl border bg-[var(--color-surface)] p-4 overflow-hidden cursor-pointer
         transition-all duration-300 flex flex-col
@@ -68,6 +69,6 @@ export function SwitchCard({ entityId, titleOverride }: Props) {
       <p className="text-xs text-white/25 mt-1">
         {relativeTime(entity.last_changed)}
       </p>
-    </div>
+    </InteractiveCard>
   );
 }
