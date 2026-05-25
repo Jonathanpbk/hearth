@@ -131,13 +131,15 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const borderClass = isOn ? "border-white/[0.12]" : "border-white/[0.06]";
 
   return (
-    <InteractiveCard className="h-full" style={{ perspective: "900px" }}>
+    <InteractiveCard className="h-full" style={{ perspective: "900px", WebkitPerspective: "900px" }}>
       <div
         style={{
           position: "relative",
           height: "100%",
           transformStyle: "preserve-3d",
+          WebkitTransformStyle: "preserve-3d",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          WebkitTransform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           transition: "transform 0.4s ease",
           borderRadius: "1rem",
           ...glowStyle,
@@ -147,7 +149,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
         {/* ── FRONT FACE ─────────────────────────────────────────────────────── */}
         <div
           className={`absolute inset-0 rounded-2xl border bg-[var(--color-surface)] overflow-hidden cursor-pointer ${borderClass}`}
-          style={{ backfaceVisibility: "hidden", pointerEvents: flipped ? "none" : "auto" }}
+          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", pointerEvents: flipped ? "none" : "auto" }}
           onClick={handleToggle}
         >
           <div className="absolute inset-0 pointer-events-none" style={tintStyle} />
@@ -187,7 +189,9 @@ export function LightCard({ entityId, titleOverride }: Props) {
           className={`absolute inset-0 rounded-2xl border bg-[var(--color-surface)] overflow-hidden ${borderClass}`}
           style={{
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
+            WebkitTransform: "rotateY(180deg)",
             pointerEvents: flipped ? "auto" : "none",
           }}
         >
