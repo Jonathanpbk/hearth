@@ -12,6 +12,8 @@ export interface Settings {
   wakeLockEnabled: boolean;
   clockFormat: "12h" | "24h";
   showDock: boolean;
+  autoDim: boolean;
+  dimTimeout: number;
   pages: Page[];
 }
 
@@ -27,5 +29,7 @@ export const defaultSettings: Settings = {
   wakeLockEnabled: true,
   clockFormat: "12h",
   showDock: true,
+  autoDim: false,
+  dimTimeout: 60,
   pages: [{ id: "default", name: "Home", icon: "LayoutDashboard", cards: [], layout: [] }],
 };

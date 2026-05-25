@@ -107,9 +107,13 @@ export function SettingsPage() {
           wakeLockEnabled={form.wakeLockEnabled}
           clockFormat={form.clockFormat}
           showDock={form.showDock}
+          autoDim={form.autoDim}
+          dimTimeout={form.dimTimeout}
           onWakeLockChange={(v) => handleChange("wakeLockEnabled", v)}
           onClockFormatChange={(v) => handleChange("clockFormat", v)}
           onShowDockChange={(v) => handleChange("showDock", v)}
+          onAutoDimChange={(v) => handleChange("autoDim", v)}
+          onDimTimeoutChange={(v) => handleChange("dimTimeout", v)}
         />
 
         <button

@@ -14,7 +14,7 @@ export default defineConfig({
         description: "Home Assistant Dashboard",
         theme_color: "#0a0a0a",
         background_color: "#0a0a0a",
-        display: "standalone",
+        display: "fullscreen",
         orientation: "any",
         start_url: "/",
         icons: [

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { useCameraStore } from "../../store/useCameraStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { useDimStore } from "../../store/useDimStore";
 import { WebRTCVideo } from "./WebRTCVideo";
 
 export function CameraOverlay() {
@@ -12,7 +13,13 @@ export function CameraOverlay() {
   const dismiss = useCameraStore((s) => s.dismiss);
   const go2rtcUrl = useSettingsStore((s) => s.settings.go2rtcUrl);
 
+  const undim = useDimStore((s) => s.undim);
   const progressRef = useRef<HTMLDivElement>(null);
+
+  // Undim screen when camera appears so the overlay is fully visible.
+  useEffect(() => {
+    if (visible) undim();
+  }, [visible, undim]);
 
   // rAF-driven progress bar + auto-dismiss. Runs only while visible.
   useEffect(() => {
