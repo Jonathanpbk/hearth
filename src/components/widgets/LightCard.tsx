@@ -131,25 +131,17 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const borderClass = isOn ? "border-white/[0.12]" : "border-white/[0.06]";
 
   return (
-    <InteractiveCard className="h-full" style={{ perspective: "900px", WebkitPerspective: "900px" }}>
-      <div
-        style={{
-          position: "relative",
-          height: "100%",
-          transformStyle: "preserve-3d",
-          WebkitTransformStyle: "preserve-3d",
-          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          WebkitTransform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          transition: "transform 0.4s ease",
-          borderRadius: "1rem",
-          ...glowStyle,
-        }}
-      >
+    <InteractiveCard className="h-full" style={{ perspective: "1000px" }}>
+      <div style={{ position: "relative", height: "100%", borderRadius: "1rem", ...glowStyle }}>
 
-        {/* ── FRONT FACE ─────────────────────────────────────────────────────── */}
+        {/* ── FRONT FACE — rotates to edge-on (-90deg) when flipping ─────────── */}
         <div
           className={`absolute inset-0 rounded-2xl border bg-[var(--color-surface)] overflow-hidden cursor-pointer ${borderClass}`}
-          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", pointerEvents: flipped ? "none" : "auto" }}
+          style={{
+            transform: flipped ? "rotateY(-90deg)" : "rotateY(0deg)",
+            transition: flipped ? "transform 0.15s ease-in" : "transform 0.15s ease-out 0.15s",
+            pointerEvents: flipped ? "none" : "auto",
+          }}
           onClick={handleToggle}
         >
           <div className="absolute inset-0 pointer-events-none" style={tintStyle} />
@@ -184,14 +176,12 @@ export function LightCard({ entityId, titleOverride }: Props) {
           </div>
         </div>
 
-        {/* ── BACK FACE ──────────────────────────────────────────────────────── */}
+        {/* ── BACK FACE — starts edge-on (90deg), rotates to flat with delay ── */}
         <div
           className={`absolute inset-0 rounded-2xl border bg-[var(--color-surface)] overflow-hidden ${borderClass}`}
           style={{
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-            WebkitTransform: "rotateY(180deg)",
+            transform: flipped ? "rotateY(0deg)" : "rotateY(90deg)",
+            transition: flipped ? "transform 0.15s ease-out 0.15s" : "transform 0.15s ease-in",
             pointerEvents: flipped ? "auto" : "none",
           }}
         >
