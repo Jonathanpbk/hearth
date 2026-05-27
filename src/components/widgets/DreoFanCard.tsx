@@ -1,16 +1,20 @@
 import { useRef, useState, useEffect } from "react";
-import { ArrowLeftRight, ArrowUpDown, Footprints, ChevronDown } from "lucide-react";
+import { ArrowLeftRight, ArrowUpDown, Footprints, ChevronDown, ChevronUp, ScanLine } from "lucide-react";
 import { InteractiveCard } from "../InteractiveCard";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
-import { turnOn, turnOff, toggle, runScript, setFanPercentage, setFanPresetMode } from "../../lib/ha-service";
+import { callService, turnOn, turnOff, toggle, runScript, setFanPercentage, setFanPresetMode } from "../../lib/ha-service";
 
-const FAN_ID       = "fan.dreo";
-const H_OSC_ID     = "switch.dreo_horizontally_oscillating";
-const V_OSC_ID     = "switch.dreo_vertically_oscillating";
-const PRESET_J     = "script.j_fan_position";
-const PRESET_A     = "script.ags_fan_position";
-const PRESET_TREAD = "script.set_fan_to_treadmill_position";
+const FAN_ID        = "fan.dreo";
+const H_OSC_ID      = "switch.dreo_horizontally_oscillating";
+const V_OSC_ID      = "switch.dreo_vertically_oscillating";
+const PRESET_J      = "script.j_fan_position";
+const PRESET_A      = "script.ags_fan_position";
+const PRESET_TREAD  = "script.set_fan_to_treadmill_position";
+const CUSTOM_OSC_ID = "input_boolean.dreo_custom_oscillation";
+const LEFT_ANGLE_ID = "input_number.dreo_left_angle";
+const RIGHT_ANGLE_ID = "input_number.dreo_right_angle";
+const OSC_DELAY_ID  = "input_number.dreo_oscillation_delay";
 
 function pctToLevel(pct: number): number {
   return Math.min(9, Math.max(1, Math.round(pct / 11)));
@@ -54,6 +58,111 @@ function PresetButton({
     >
       {children}
     </button>
+  );
+}
+
+function NumStepper({
+  label, value, min, max, step, entityId,
+}: {
+  label: string; value: number; min: number; max: number; step: number; entityId: string;
+}) {
+  function adjust(delta: number) {
+    const numValue = parseFloat(String(value));
+    if (isNaN(numValue)) return;
+    const next = Math.min(max, Math.max(min, numValue + delta));
+    const domain = entityId.split(".")[0];
+    try {
+      void callService(getConnection(), domain, "set_value", { entity_id: entityId, value: next });
+    } catch { /* disconnected */ }
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-xs text-white/50 shrink-0">{label}</span>
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); adjust(-step); }}
+          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors"
+        >
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-xs font-mono text-white w-8 text-center tabular-nums">{value}</span>
+        <button
+          onClick={(e) => { e.stopPropagation(); adjust(step); }}
+          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors"
+        >
+          <ChevronUp className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CustomOscButton() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const customOsc = useHAEntity(CUSTOM_OSC_ID);
+  const leftAngle  = useHAEntity(LEFT_ANGLE_ID);
+  const rightAngle = useHAEntity(RIGHT_ANGLE_ID);
+  const oscDelay   = useHAEntity(OSC_DELAY_ID);
+
+  useEffect(() => {
+    if (!open) return;
+    function onOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [open]);
+
+  const isActive = customOsc?.state === "on";
+  const leftVal  = Math.round(Number(leftAngle?.state  ?? -15));
+  const rightVal = Math.round(Number(rightAngle?.state ?? 15));
+  const delayVal = Math.round(Number(oscDelay?.state   ?? 5));
+
+  function handleStartStop(e: React.MouseEvent) {
+    e.stopPropagation();
+    try { void toggle(getConnection(), CUSTOM_OSC_ID); } catch { /* disconnected */ }
+    setOpen(false);
+  }
+
+  return (
+    <div ref={ref} className="relative flex-1" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Custom oscillation"
+        className={`w-full flex items-center justify-center py-2 rounded-xl border
+          transition-all duration-200 active:scale-95
+          ${isActive || open
+            ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
+            : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}`}
+      >
+        <ScanLine className="h-4 w-4" />
+      </button>
+
+      {open && (
+        <div
+          className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 w-44 rounded-xl border border-white/[0.08] shadow-xl p-3 flex flex-col gap-2.5"
+          style={{ background: "#3a3a3c" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <NumStepper label="Left" value={leftVal} min={-60} max={60} step={1} entityId={LEFT_ANGLE_ID} />
+          <NumStepper label="Right" value={rightVal} min={-60} max={60} step={1} entityId={RIGHT_ANGLE_ID} />
+          <NumStepper label="Delay (s)" value={delayVal} min={1} max={10} step={1} entityId={OSC_DELAY_ID} />
+          <button
+            onClick={handleStartStop}
+            className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors border
+              ${isActive
+                ? "bg-[#ffc174]/20 text-[#ffc174] border-[#ffc174]/30"
+                : "bg-[#ffc174]/10 text-[#ffc174] border-[#ffc174]/20 hover:bg-[#ffc174]/20"
+              }`}
+          >
+            {isActive ? "Stop" : "Start"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -126,13 +235,13 @@ export function DreoFanCard() {
     return <div className="h-full rounded-2xl border border-white/[0.06] bg-[var(--color-surface)]" />;
   }
 
-  const isOn       = fan.state === "on";
-  const pct        = (fan.attributes.percentage as number | undefined) ?? 0;
-  const presetMode = (fan.attributes.preset_mode as string | undefined) ?? "";
+  const isOn        = fan.state === "on";
+  const pct         = (fan.attributes.percentage as number | undefined) ?? 0;
+  const presetMode  = (fan.attributes.preset_mode as string | undefined) ?? "";
   const presetModes = (fan.attributes.preset_modes as string[] | undefined) ?? [];
-  const hOscOn     = hOsc?.state === "on";
-  const vOscOn     = vOsc?.state === "on";
-  const level      = pctToLevel(pct);
+  const hOscOn      = hOsc?.state === "on";
+  const vOscOn      = vOsc?.state === "on";
+  const level       = pctToLevel(pct);
 
   function handleCardToggle() {
     try {
@@ -203,11 +312,12 @@ export function DreoFanCard() {
           />
         </div>
 
-        {/* Oscillation */}
+        {/* Oscillation — H | Custom | V */}
         <div className="flex gap-2">
           <OscButton active={hOscOn} label="Horizontal oscillation" onClick={() => handleToggleOsc(H_OSC_ID)}>
             <ArrowLeftRight className="h-4 w-4" />
           </OscButton>
+          <CustomOscButton />
           <OscButton active={vOscOn} label="Vertical oscillation" onClick={() => handleToggleOsc(V_OSC_ID)}>
             <ArrowUpDown className="h-4 w-4" />
           </OscButton>
