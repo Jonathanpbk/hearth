@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./store/useSettingsStore";
 import { useDimStore } from "./store/useDimStore";
-import { initConnection } from "./lib/ha-connection";
+import { initConnection, stopConnection } from "./lib/ha-connection";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { useCameraEvent } from "./hooks/useCameraEvent";
 import { CameraOverlay } from "./components/camera/CameraOverlay";
@@ -18,6 +18,7 @@ function HAConnectionManager() {
 
   useEffect(() => {
     void initConnection(haLocalUrl, haRemoteUrl, haToken);
+    return stopConnection;
   }, [haLocalUrl, haRemoteUrl, haToken]);
 
   return null;
