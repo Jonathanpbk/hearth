@@ -3,7 +3,7 @@ import { Sunset } from "lucide-react";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { activateScene } from "../../lib/ha-service";
-import { interactiveCardClass } from "../../lib/styles";
+import { cardClass, interactiveCardClass } from "../../lib/styles";
 import { InteractiveCard } from "../InteractiveCard";
 import { useEntityStore } from "../../store/useEntityStore";
 import { getEntityBlockReason } from "../../lib/entity-state";
@@ -45,9 +45,10 @@ export function SceneCard({ entityId, titleOverride }: Props) {
 
   return (
     <InteractiveCard
+      interactionDisabled={Boolean(blockReason)}
       onClick={blockReason ? undefined : () => void handleActivate()}
       aria-disabled={Boolean(blockReason)}
-      className={`relative ${interactiveCardClass} ${blockReason ? "cursor-not-allowed opacity-60 active:scale-100" : ""} ${activated ? "bg-[#ffc174]/10 border-[#ffc174]/30" : ""}`}
+      className={`relative ${blockReason ? `${cardClass} cursor-not-allowed opacity-60` : interactiveCardClass} ${activated ? "bg-[#ffc174]/10 border-[#ffc174]/30" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-white truncate flex-1">{name}</p>

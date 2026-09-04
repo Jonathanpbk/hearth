@@ -42,7 +42,7 @@ function OscButton({
         ${active
           ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
           : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}
-        disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100`}
+        disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none`}
     >
       {children}
     </button>
@@ -61,7 +61,7 @@ function PresetButton({
       aria-label={label}
       className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/[0.08]
         bg-white/[0.04] text-white/50 hover:text-white hover:border-white/20
-        transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100"
+        transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
     >
       {children}
     </button>
@@ -95,7 +95,7 @@ function NumStepper({
         <button
           onClick={(e) => { e.stopPropagation(); adjust(-step); }}
           disabled={Boolean(blockReason)}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
         >
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -103,7 +103,7 @@ function NumStepper({
         <button
           onClick={(e) => { e.stopPropagation(); adjust(step); }}
           disabled={Boolean(blockReason)}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
         >
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
@@ -157,7 +157,7 @@ function CustomOscButton() {
           ${isActive || open
             ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
             : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}
-          disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100`}
+          disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none`}
       >
         <ScanLine className="h-4 w-4" />
       </button>
@@ -178,7 +178,7 @@ function CustomOscButton() {
               ${isActive
                 ? "bg-[#ffc174]/20 text-[#ffc174] border-[#ffc174]/30"
                 : "bg-[#ffc174]/10 text-[#ffc174] border-[#ffc174]/20 hover:bg-[#ffc174]/20"
-              } disabled:cursor-not-allowed disabled:opacity-35`}
+              } disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none`}
           >
             {isActive ? "Stop" : "Start"}
           </button>
@@ -218,7 +218,7 @@ function ModeDropdown({ modes, value, onChange, disabled }: {
           ${open
             ? "bg-[#ffc174]/10 border-[#ffc174]/30 text-[#ffc174]"
             : "bg-white/[0.04] border-white/[0.08] text-white/70 hover:text-white hover:border-white/20"
-          } disabled:cursor-not-allowed disabled:opacity-35`}
+          } disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none`}
       >
         <span>{label}</span>
         <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
@@ -327,6 +327,7 @@ export function DreoFanCard() {
 
   return (
     <InteractiveCard
+      interactionDisabled={Boolean(blockReason)}
       onClick={blockReason ? undefined : handleCardToggle}
       aria-disabled={Boolean(blockReason)}
       className={`relative h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] overflow-hidden ${blockReason ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
@@ -367,6 +368,7 @@ export function DreoFanCard() {
             defaultValue={level}
             key={isOn ? `on-${level}` : "off"}
             disabled={!isOn || Boolean(blockReason)}
+            className="disabled:pointer-events-none"
             onChange={(e) => handleLevel(Number(e.target.value))}
           />
         </div>

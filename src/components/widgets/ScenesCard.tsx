@@ -33,7 +33,10 @@ export function ScenesCard() {
   }
 
   return (
-    <InteractiveCard className="h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] p-2 gap-1.5">
+    <InteractiveCard
+      interactionDisabled={connectionStatus !== "connected"}
+      className="h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] p-2 gap-1.5"
+    >
       <p className="text-[10px] font-medium uppercase tracking-widest text-white/40 px-0.5 shrink-0">Scenes</p>
 
       <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1.5 min-h-0">
@@ -47,7 +50,8 @@ export function ScenesCard() {
               aria-label={blockReason ? `${label}, ${blockReason}` : label}
               title={blockReason ?? undefined}
               className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border
-                transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100
+                transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none
+                ${blockReason ? "" : "active:scale-95"}
                 ${active === id ? "opacity-100 scale-95" : ""}
                 ${css}`}
             >

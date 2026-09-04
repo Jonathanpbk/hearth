@@ -62,7 +62,7 @@ export function Header() {
               menuOpen
                 ? "bg-[#ffc174]/15 text-[#ffc174]"
                 : "text-white/40 hover:text-white/70 hover:bg-white/[0.06]"
-            } disabled:cursor-not-allowed disabled:opacity-35`}
+            } disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none`}
             aria-label="Quick actions"
           >
             <Megaphone className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function Header() {
                     onClick={() => runQuickAction(entityId, label)}
                     disabled={Boolean(blockReason)}
                     title={blockReason ?? undefined}
-                    className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+                    className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
                   >
                     {label}
                   </button>

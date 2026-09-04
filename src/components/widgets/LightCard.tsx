@@ -42,7 +42,7 @@ function FlipBtn({
       onClick={(e) => { e.stopPropagation(); onFlip(); }}
       disabled={disabled}
       aria-label={mirrored ? "Back to front" : "Show sliders"}
-      className="p-1 rounded-lg text-white/20 hover:text-white/50 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+      className="p-1 rounded-lg text-white/20 hover:text-white/50 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
     >
       <RotateCcw
         className="h-3 w-3"
@@ -177,7 +177,11 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const borderClass = isOn ? "border-white/[0.12]" : "border-white/[0.06]";
 
   return (
-    <InteractiveCard className="h-full" style={{ perspective: "1000px" }}>
+    <InteractiveCard
+      interactionDisabled={Boolean(blockReason)}
+      className="h-full"
+      style={{ perspective: "1000px" }}
+    >
       <div style={{ position: "relative", height: "100%", borderRadius: "1rem", ...glowStyle }}>
         <EntityStatusBadge reason={blockReason} />
 
@@ -248,6 +252,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
                     max={255}
                     value={displayBrightness}
                     disabled={!isOn || Boolean(blockReason)}
+                    className="disabled:pointer-events-none"
                     aria-label="Brightness"
                     onChange={(e) => handleBrightness(Number(e.target.value))}
                   />
@@ -262,6 +267,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
                     max={maxKelvin}
                     value={displayColorTemp}
                     disabled={!isOn || Boolean(blockReason)}
+                    className="disabled:pointer-events-none"
                     aria-label="Colour temperature"
                     onChange={(e) => handleColorTemp(Number(e.target.value))}
                   />
@@ -277,7 +283,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
                     onClick={(e) => { e.stopPropagation(); colorInputRef.current?.click(); }}
                     disabled={Boolean(blockReason)}
                     aria-label="Pick colour"
-                    className="p-1 rounded-lg text-white/20 hover:text-white/50 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+                    className="p-1 rounded-lg text-white/20 hover:text-white/50 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
                   >
                     <Palette className="h-3 w-3" />
                   </button>
