@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>Updating Hearth</title>
+    <style>
+      :root {
+        color: rgba(255, 255, 255, 0.85);
+        background: #0a0a0a;
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+      }
+
+      main {
+        width: min(24rem, calc(100vw - 3rem));
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        background: #1c1c1e;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0 0 0.75rem;
+        font-size: 1.25rem;
+      }
+
+      p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Updating Hearth</h1>
+      <p id="status">Checking for the latest dashboard version.</p>
+    </main>
+    <script>
+      const status = document.getElementById("status");
+      let leaving = false;
+
+      function returnToHearth() {
+        if (leaving) return;
+        leaving = true;
+        window.location.replace("/?pwa-updated=" + Date.now());
+      }
+
+      async function updateHearth() {
+        if (!("serviceWorker" in navigator)) {
+          returnToHearth();
+          return;
+        }
+
+        navigator.serviceWorker.addEventListener("controllerchange", returnToHearth);
+
+        try {
+          const registration = await navigator.serviceWorker.getRegistration("/");
+          if (registration) await registration.update();
+          window.setTimeout(returnToHearth, 2000);
+        } catch (error) {
+          status.textContent = "The update check failed. Reopen this page while connected.";
+          console.error("Failed to refresh Hearth", error);
+        }
+      }
+
+      void updateHearth();
+    </script>
+  </body>
+</html>
