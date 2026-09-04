@@ -56,6 +56,7 @@ export function SwitchCard({ entityId, titleOverride }: Props) {
 
   return (
     <InteractiveCard
+      interactionDisabled={Boolean(blockReason)}
       onClick={blockReason ? undefined : handleToggle}
       aria-disabled={Boolean(blockReason)}
       className={`relative h-full rounded-2xl border bg-[var(--color-surface)] p-4 overflow-hidden
