@@ -6,6 +6,9 @@ import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import { useDashboardStore } from "../../store/useDashboardStore";
 import { getConnection } from "../../lib/ha-connection";
 import { callService } from "../../lib/ha-service";
+import { useEntityStore } from "../../store/useEntityStore";
+import { getEntityBlockReason } from "../../lib/entity-state";
+import { executeServiceAction } from "../../lib/service-action";
 
 const QUICK_ACTIONS = [
   { label: "Stop dogs!", entityId: "script.dogstop" },
@@ -17,6 +20,8 @@ export function Header() {
   const { canInstall, install } = useInstallPrompt();
   const editMode = useDashboardStore((s) => s.editMode);
   const setEditMode = useDashboardStore((s) => s.setEditMode);
+  const entities = useEntityStore((s) => s.entities);
+  const connectionStatus = useEntityStore((s) => s.connectionStatus);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -32,10 +37,10 @@ export function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
-  function runScript(entityId: string) {
-    try {
-      callService(getConnection(), "script", "turn_on", { entity_id: entityId });
-    } catch { /* connection not ready */ }
+  function runQuickAction(entityId: string, label: string) {
+    void executeServiceAction(`Run ${label}`, () =>
+      callService(getConnection(), "script", "turn_on", { entity_id: entityId })
+    );
     setMenuOpen(false);
   }
 
@@ -52,11 +57,12 @@ export function Header() {
         <div ref={menuRef} className="relative">
           <button
             onClick={() => setMenuOpen((o) => !o)}
+            disabled={connectionStatus !== "connected"}
             className={`p-1.5 rounded-lg transition-colors ${
               menuOpen
                 ? "bg-[#ffc174]/15 text-[#ffc174]"
                 : "text-white/40 hover:text-white/70 hover:bg-white/[0.06]"
-            }`}
+            } disabled:cursor-not-allowed disabled:opacity-35`}
             aria-label="Quick actions"
           >
             <Megaphone className="h-4 w-4" />
@@ -65,15 +71,20 @@ export function Header() {
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[160px] rounded-xl border border-white/[0.08] shadow-xl overflow-hidden"
               style={{ background: "#3a3a3c" }}>
-              {QUICK_ACTIONS.map(({ label, entityId }) => (
-                <button
-                  key={entityId}
-                  onClick={() => runScript(entityId)}
-                  className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors"
-                >
-                  {label}
-                </button>
-              ))}
+              {QUICK_ACTIONS.map(({ label, entityId }) => {
+                const blockReason = getEntityBlockReason(entities[entityId], connectionStatus);
+                return (
+                  <button
+                    key={entityId}
+                    onClick={() => runQuickAction(entityId, label)}
+                    disabled={Boolean(blockReason)}
+                    title={blockReason ?? undefined}
+                    className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

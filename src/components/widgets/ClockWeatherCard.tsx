@@ -10,6 +10,7 @@ import { useEntityStore } from "../../store/useEntityStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { getConnection } from "../../lib/ha-connection";
 import type { WeatherEntityAttributes, WeatherForecastDay } from "../../types/weather";
+import { isUnavailableEntity } from "../../lib/entity-state";
 
 const CONDITION_ICONS: Record<string, LucideIcon> = {
   sunny: Sun,
@@ -106,8 +107,9 @@ export function ClockWeatherCard() {
   const dateStr = `${weekday}, ${monthStr} ${now.getDate()}`;
 
   // ── Weather ───────────────────────────────────────────────────────────────
-  const attrs = entity ? (entity.attributes as unknown as WeatherEntityAttributes) : null;
-  const condition = entity?.state ?? "";
+  const weatherAvailable = entity !== undefined && !isUnavailableEntity(entity);
+  const attrs = weatherAvailable ? (entity.attributes as unknown as WeatherEntityAttributes) : null;
+  const condition = weatherAvailable ? entity.state : "";
   const forecast =
     subscriptionForecast.length > 0 ? subscriptionForecast : (attrs?.forecast ?? []);
   const forecastDays = forecast.slice(0, 7);
@@ -136,7 +138,7 @@ export function ClockWeatherCard() {
 
         {/* Right — weather */}
         <div className="flex flex-col justify-center items-end min-w-0">
-          {!entity ? (
+          {!weatherAvailable ? (
             <p className="text-xs text-white/25 text-right">
               {weatherEntityId ? "Unavailable" : "No entity set"}
             </p>

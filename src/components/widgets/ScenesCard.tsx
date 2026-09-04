@@ -3,6 +3,9 @@ import { InteractiveCard } from "../InteractiveCard";
 import { Sun, Sofa, Sparkles, Film, Palette, PowerOff } from "lucide-react";
 import { getConnection } from "../../lib/ha-connection";
 import { runScript } from "../../lib/ha-service";
+import { useEntityStore } from "../../store/useEntityStore";
+import { getEntityBlockReason } from "../../lib/entity-state";
+import { executeServiceAction } from "../../lib/service-action";
 
 const SCENES = [
   { id: "script.day_lights",         label: "Day",    Icon: Sun,      color: "amber",  css: "bg-amber-400/10 hover:bg-amber-400/20 border-amber-400/20 text-amber-300"   },
@@ -15,9 +18,16 @@ const SCENES = [
 
 export function ScenesCard() {
   const [active, setActive] = useState<string | null>(null);
+  const entities = useEntityStore((state) => state.entities);
+  const connectionStatus = useEntityStore((state) => state.connectionStatus);
 
-  function handleScene(scriptId: string) {
-    try { void runScript(getConnection(), scriptId); } catch { /* disconnected */ }
+  async function handleScene(scriptId: string, label: string) {
+    const blockReason = getEntityBlockReason(entities[scriptId], connectionStatus);
+    if (blockReason) return;
+    const succeeded = await executeServiceAction(`Run ${label}`, () =>
+      runScript(getConnection(), scriptId)
+    );
+    if (!succeeded) return;
     setActive(scriptId);
     setTimeout(() => setActive(null), 600);
   }
@@ -27,20 +37,25 @@ export function ScenesCard() {
       <p className="text-[10px] font-medium uppercase tracking-widest text-white/40 px-0.5 shrink-0">Scenes</p>
 
       <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1.5 min-h-0">
-        {SCENES.map(({ id, label, Icon, css }) => (
-          <button
-            key={id}
-            onClick={() => handleScene(id)}
-            aria-label={label}
-            className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border
-              transition-all duration-150 active:scale-95
-              ${active === id ? "opacity-100 scale-95" : ""}
-              ${css}`}
-          >
-            <Icon className="h-6 w-6" />
-            <span className="text-xs font-medium tracking-wide">{label}</span>
-          </button>
-        ))}
+        {SCENES.map(({ id, label, Icon, css }) => {
+          const blockReason = getEntityBlockReason(entities[id], connectionStatus);
+          return (
+            <button
+              key={id}
+              onClick={() => void handleScene(id, label)}
+              disabled={Boolean(blockReason)}
+              aria-label={blockReason ? `${label}, ${blockReason}` : label}
+              title={blockReason ?? undefined}
+              className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border
+                transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100
+                ${active === id ? "opacity-100 scale-95" : ""}
+                ${css}`}
+            >
+              <Icon className="h-6 w-6" />
+              <span className="text-xs font-medium tracking-wide">{label}</span>
+            </button>
+          );
+        })}
       </div>
     </InteractiveCard>
   );
