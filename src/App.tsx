@@ -8,6 +8,7 @@ import { useWakeLock } from "./hooks/useWakeLock";
 import { useCameraEvent } from "./hooks/useCameraEvent";
 import { CameraOverlay } from "./components/camera/CameraOverlay";
 import { DimOverlay } from "./components/DimOverlay";
+import { ServiceErrorToast } from "./components/ServiceErrorToast";
 import { DashboardView } from "./views/DashboardView";
 import { SettingsView } from "./views/SettingsView";
 
@@ -132,6 +133,7 @@ export default function App() {
       </Routes>
       <DimOverlay />
       <CameraOverlay />
+      <ServiceErrorToast />
     </BrowserRouter>
   );
 }

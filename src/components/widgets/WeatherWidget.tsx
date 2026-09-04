@@ -22,6 +22,7 @@ import { getConnection } from "../../lib/ha-connection";
 import { cardClass } from "../../lib/styles";
 import { InteractiveCard } from "../InteractiveCard";
 import type { WeatherEntityAttributes, WeatherForecastDay } from "../../types/weather";
+import { isUnavailableEntity } from "../../lib/entity-state";
 
 const CONDITION_ICONS: Record<string, LucideIcon> = {
   sunny: Sun,
@@ -121,7 +122,7 @@ export function WeatherWidget() {
   const entity = useHAEntity(weatherEntityId);
   const subscriptionForecast = useWeatherForecast(weatherEntityId);
 
-  if (!entity) {
+  if (!entity || isUnavailableEntity(entity)) {
     return (
       <InteractiveCard
         className={`${cardClass} md:col-span-2 min-h-[140px] flex items-center justify-center`}

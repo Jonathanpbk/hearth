@@ -4,6 +4,10 @@ import { InteractiveCard } from "../InteractiveCard";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
 import { callService, turnOn, turnOff, toggle, runScript, setFanPercentage, setFanPresetMode } from "../../lib/ha-service";
+import { useEntityStore } from "../../store/useEntityStore";
+import { getEntityBlockReason } from "../../lib/entity-state";
+import { executeServiceAction } from "../../lib/service-action";
+import { EntityFallbackCard, EntityStatusBadge } from "../EntityStatus";
 
 const FAN_ID        = "fan.dreo";
 const H_OSC_ID      = "switch.dreo_horizontally_oscillating";
@@ -24,19 +28,21 @@ function levelToPct(level: number): number {
 }
 
 function OscButton({
-  active, label, children, onClick,
+  active, label, children, onClick, disabled,
 }: {
-  active: boolean; label: string; children: React.ReactNode; onClick: () => void;
+  active: boolean; label: string; children: React.ReactNode; onClick: () => void; disabled: boolean;
 }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
+      disabled={disabled}
       aria-label={label}
       className={`flex-1 flex items-center justify-center py-2 rounded-xl border
         transition-all duration-200 active:scale-95
         ${active
           ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
-          : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}`}
+          : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}
+        disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100`}
     >
       {children}
     </button>
@@ -44,17 +50,18 @@ function OscButton({
 }
 
 function PresetButton({
-  label, onClick, children,
+  label, onClick, children, disabled,
 }: {
-  label: string; onClick: () => void; children: React.ReactNode;
+  label: string; onClick: () => void; children: React.ReactNode; disabled: boolean;
 }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
+      disabled={disabled}
       aria-label={label}
       className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/[0.08]
         bg-white/[0.04] text-white/50 hover:text-white hover:border-white/20
-        transition-all duration-150 active:scale-95"
+        transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100"
     >
       {children}
     </button>
@@ -66,14 +73,19 @@ function NumStepper({
 }: {
   label: string; value: number; min: number; max: number; step: number; entityId: string;
 }) {
+  const entity = useHAEntity(entityId);
+  const connectionStatus = useEntityStore((state) => state.connectionStatus);
+  const blockReason = getEntityBlockReason(entity, connectionStatus);
+
   function adjust(delta: number) {
+    if (blockReason) return;
     const numValue = parseFloat(String(value));
     if (isNaN(numValue)) return;
     const next = Math.min(max, Math.max(min, numValue + delta));
     const domain = entityId.split(".")[0];
-    try {
-      void callService(getConnection(), domain, "set_value", { entity_id: entityId, value: next });
-    } catch { /* disconnected */ }
+    void executeServiceAction(`Set ${label}`, () =>
+      callService(getConnection(), domain, "set_value", { entity_id: entityId, value: next })
+    );
   }
 
   return (
@@ -82,14 +94,16 @@ function NumStepper({
       <div className="flex items-center gap-0.5">
         <button
           onClick={(e) => { e.stopPropagation(); adjust(-step); }}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors"
+          disabled={Boolean(blockReason)}
+          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
         >
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
         <span className="text-xs font-mono text-white w-8 text-center tabular-nums">{value}</span>
         <button
           onClick={(e) => { e.stopPropagation(); adjust(step); }}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors"
+          disabled={Boolean(blockReason)}
+          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
         >
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
@@ -106,6 +120,8 @@ function CustomOscButton() {
   const leftAngle  = useHAEntity(LEFT_ANGLE_ID);
   const rightAngle = useHAEntity(RIGHT_ANGLE_ID);
   const oscDelay   = useHAEntity(OSC_DELAY_ID);
+  const connectionStatus = useEntityStore((state) => state.connectionStatus);
+  const blockReason = getEntityBlockReason(customOsc, connectionStatus);
 
   useEffect(() => {
     if (!open) return;
@@ -123,7 +139,10 @@ function CustomOscButton() {
 
   function handleStartStop(e: React.MouseEvent) {
     e.stopPropagation();
-    try { void toggle(getConnection(), CUSTOM_OSC_ID); } catch { /* disconnected */ }
+    if (blockReason) return;
+    void executeServiceAction("Toggle custom oscillation", () =>
+      toggle(getConnection(), CUSTOM_OSC_ID)
+    );
     setOpen(false);
   }
 
@@ -131,12 +150,14 @@ function CustomOscButton() {
     <div ref={ref} className="relative flex-1" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen((o) => !o)}
+        disabled={Boolean(blockReason)}
         aria-label="Custom oscillation"
         className={`w-full flex items-center justify-center py-2 rounded-xl border
           transition-all duration-200 active:scale-95
           ${isActive || open
             ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
-            : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}`}
+            : "bg-white/[0.04] border-white/[0.08] text-white/35 hover:text-white/60"}
+          disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100`}
       >
         <ScanLine className="h-4 w-4" />
       </button>
@@ -152,11 +173,12 @@ function CustomOscButton() {
           <NumStepper label="Delay (s)" value={delayVal} min={1} max={10} step={1} entityId={OSC_DELAY_ID} />
           <button
             onClick={handleStartStop}
+            disabled={Boolean(blockReason)}
             className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors border
               ${isActive
                 ? "bg-[#ffc174]/20 text-[#ffc174] border-[#ffc174]/30"
                 : "bg-[#ffc174]/10 text-[#ffc174] border-[#ffc174]/20 hover:bg-[#ffc174]/20"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-35`}
           >
             {isActive ? "Stop" : "Start"}
           </button>
@@ -166,10 +188,11 @@ function CustomOscButton() {
   );
 }
 
-function ModeDropdown({ modes, value, onChange }: {
+function ModeDropdown({ modes, value, onChange, disabled }: {
   modes: string[];
   value: string;
   onChange: (mode: string) => void;
+  disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -189,12 +212,13 @@ function ModeDropdown({ modes, value, onChange }: {
     <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
       <button
         onClick={() => setOpen((o) => !o)}
+        disabled={disabled}
         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl border
           text-sm transition-colors
           ${open
             ? "bg-[#ffc174]/10 border-[#ffc174]/30 text-[#ffc174]"
             : "bg-white/[0.04] border-white/[0.08] text-white/70 hover:text-white hover:border-white/20"
-          }`}
+          } disabled:cursor-not-allowed disabled:opacity-35`}
       >
         <span>{label}</span>
         <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
@@ -228,13 +252,35 @@ export function DreoFanCard() {
   const fan  = useHAEntity(FAN_ID);
   const hOsc = useHAEntity(H_OSC_ID);
   const vOsc = useHAEntity(V_OSC_ID);
+  const presetJ = useHAEntity(PRESET_J);
+  const presetA = useHAEntity(PRESET_A);
+  const presetTread = useHAEntity(PRESET_TREAD);
+  const connectionStatus = useEntityStore((state) => state.connectionStatus);
 
   const levelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (levelTimer.current) clearTimeout(levelTimer.current);
+    };
+  }, []);
+
   if (!fan) {
-    return <div className="h-full rounded-2xl border border-white/[0.06] bg-[var(--color-surface)]" />;
+    return (
+      <EntityFallbackCard
+        entityId={FAN_ID}
+        titleOverride="Dreo fan"
+        connectionStatus={connectionStatus}
+      />
+    );
   }
 
+  const blockReason = getEntityBlockReason(fan, connectionStatus);
+  const hOscBlockReason = getEntityBlockReason(hOsc, connectionStatus);
+  const vOscBlockReason = getEntityBlockReason(vOsc, connectionStatus);
+  const presetJBlockReason = getEntityBlockReason(presetJ, connectionStatus);
+  const presetABlockReason = getEntityBlockReason(presetA, connectionStatus);
+  const presetTreadBlockReason = getEntityBlockReason(presetTread, connectionStatus);
   const isOn        = fan.state === "on";
   const pct         = (fan.attributes.percentage as number | undefined) ?? 0;
   const presetMode  = (fan.attributes.preset_mode as string | undefined) ?? "";
@@ -244,36 +290,48 @@ export function DreoFanCard() {
   const level       = pctToLevel(pct);
 
   function handleCardToggle() {
-    try {
-      if (isOn) void turnOff(getConnection(), FAN_ID);
-      else      void turnOn(getConnection(), FAN_ID);
-    } catch { /* disconnected */ }
+    if (blockReason) return;
+    void executeServiceAction("Toggle Dreo fan", () =>
+      isOn ? turnOff(getConnection(), FAN_ID) : turnOn(getConnection(), FAN_ID)
+    );
   }
 
   function handleLevel(value: number) {
+    if (blockReason) return;
     if (levelTimer.current) clearTimeout(levelTimer.current);
     levelTimer.current = setTimeout(() => {
-      try { void setFanPercentage(getConnection(), FAN_ID, levelToPct(value)); } catch { /* disconnected */ }
+      void executeServiceAction("Set Dreo fan speed", () =>
+        setFanPercentage(getConnection(), FAN_ID, levelToPct(value))
+      );
     }, 120);
   }
 
   function handleToggleOsc(entityId: string) {
-    try { void toggle(getConnection(), entityId); } catch { /* disconnected */ }
+    void executeServiceAction("Toggle Dreo oscillation", () =>
+      toggle(getConnection(), entityId)
+    );
   }
 
   function handlePreset(scriptId: string) {
-    try { void runScript(getConnection(), scriptId); } catch { /* disconnected */ }
+    void executeServiceAction("Set Dreo position", () =>
+      runScript(getConnection(), scriptId)
+    );
   }
 
   function handleMode(mode: string) {
-    try { void setFanPresetMode(getConnection(), FAN_ID, mode); } catch { /* disconnected */ }
+    if (blockReason) return;
+    void executeServiceAction("Set Dreo mode", () =>
+      setFanPresetMode(getConnection(), FAN_ID, mode)
+    );
   }
 
   return (
     <InteractiveCard
-      onClick={handleCardToggle}
-      className="h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] overflow-hidden cursor-pointer"
+      onClick={blockReason ? undefined : handleCardToggle}
+      aria-disabled={Boolean(blockReason)}
+      className={`relative h-full flex flex-col bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] overflow-hidden ${blockReason ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
     >
+      <EntityStatusBadge reason={blockReason} />
       {/* Fan image — dominant visual */}
       <div className="flex items-center justify-center px-4 pt-3 min-h-0" style={{ flex: "0 0 45%" }}>
         <img
@@ -308,30 +366,31 @@ export function DreoFanCard() {
             step={1}
             defaultValue={level}
             key={isOn ? `on-${level}` : "off"}
+            disabled={!isOn || Boolean(blockReason)}
             onChange={(e) => handleLevel(Number(e.target.value))}
           />
         </div>
 
         {/* Oscillation — H | Custom | V */}
         <div className="flex gap-2">
-          <OscButton active={hOscOn} label="Horizontal oscillation" onClick={() => handleToggleOsc(H_OSC_ID)}>
+          <OscButton active={hOscOn} label="Horizontal oscillation" onClick={() => handleToggleOsc(H_OSC_ID)} disabled={Boolean(hOscBlockReason)}>
             <ArrowLeftRight className="h-4 w-4" />
           </OscButton>
           <CustomOscButton />
-          <OscButton active={vOscOn} label="Vertical oscillation" onClick={() => handleToggleOsc(V_OSC_ID)}>
+          <OscButton active={vOscOn} label="Vertical oscillation" onClick={() => handleToggleOsc(V_OSC_ID)} disabled={Boolean(vOscBlockReason)}>
             <ArrowUpDown className="h-4 w-4" />
           </OscButton>
         </div>
 
         {/* Preset buttons — J at 1/4, A at 1/2, treadmill at 3/4 */}
         <div className="flex justify-around">
-          <PresetButton label="J position" onClick={() => handlePreset(PRESET_J)}>
+          <PresetButton label="J position" onClick={() => handlePreset(PRESET_J)} disabled={Boolean(presetJBlockReason)}>
             <span className="text-sm font-bold">J</span>
           </PresetButton>
-          <PresetButton label="A position" onClick={() => handlePreset(PRESET_A)}>
+          <PresetButton label="A position" onClick={() => handlePreset(PRESET_A)} disabled={Boolean(presetABlockReason)}>
             <span className="text-sm font-bold">A</span>
           </PresetButton>
-          <PresetButton label="Treadmill position" onClick={() => handlePreset(PRESET_TREAD)}>
+          <PresetButton label="Treadmill position" onClick={() => handlePreset(PRESET_TREAD)} disabled={Boolean(presetTreadBlockReason)}>
             <Footprints className="h-4 w-4" />
           </PresetButton>
         </div>
@@ -342,6 +401,7 @@ export function DreoFanCard() {
             modes={presetModes}
             value={presetMode}
             onChange={handleMode}
+            disabled={Boolean(blockReason)}
           />
         )}
       </div>

@@ -5,6 +5,8 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useEntityStore } from "../../store/useEntityStore";
+import { getEntityBlockReason, isUnavailableEntity } from "../../lib/entity-state";
+import { EntityFallbackCard, EntityStatusBadge } from "../EntityStatus";
 
 interface Props {
   entityId: string;
@@ -59,12 +61,42 @@ export function SensorCard({ entityId, titleOverride }: Props) {
   const connectionStatus = useEntityStore((s) => s.connectionStatus);
 
   useEffect(() => {
-    if (connectionStatus !== "connected" || !haUrl || !haToken) return;
-    void fetchHistory(haUrl, haToken, entityId).then(setHistory);
-  }, [entityId, haUrl, haToken, connectionStatus]);
+    if (
+      connectionStatus !== "connected" ||
+      !entity ||
+      !haUrl ||
+      !haToken ||
+      isUnavailableEntity(entity)
+    ) {
+      return;
+    }
 
-  if (!entity) return <div className="h-full rounded-2xl border border-white/[0.04] bg-[var(--color-surface)] overflow-hidden" />;
+    let cancelled = false;
+    void fetchHistory(haUrl, haToken, entityId)
+      .then((points) => {
+        if (!cancelled) setHistory(points);
+      })
+      .catch((error: unknown) => {
+        console.error(`[Hearth] Fetch ${entityId} history failed`, error);
+        if (!cancelled) setHistory([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [entityId, entity, haUrl, haToken, connectionStatus]);
 
+  if (!entity) {
+    return (
+      <EntityFallbackCard
+        entityId={entityId}
+        titleOverride={titleOverride}
+        connectionStatus={connectionStatus}
+      />
+    );
+  }
+
+  const blockReason = getEntityBlockReason(entity, connectionStatus);
+  const stateUnavailable = isUnavailableEntity(entity);
   const name = titleOverride ?? (entity.attributes.friendly_name as string | undefined) ?? entityId;
   const unit = entity.attributes.unit_of_measurement as string | undefined;
   const deviceClass = entity.attributes.device_class as string | undefined;
@@ -80,7 +112,11 @@ export function SensorCard({ entityId, titleOverride }: Props) {
 
   const valueColor =
     deviceClass === "battery" && isNumeric ? getBatteryColor(numValue) : "text-white";
-  const displayValue = isNumeric ? formatValue(numValue) : entity.state;
+  const displayValue = stateUnavailable
+    ? blockReason ?? "Unavailable"
+    : isNumeric
+      ? formatValue(numValue)
+      : entity.state;
   const gradId = `shc-${entityId.replace(/[^a-z0-9]/gi, "-")}`;
 
   const faceBase =
@@ -88,15 +124,16 @@ export function SensorCard({ entityId, titleOverride }: Props) {
 
   return (
     <InteractiveCard
-      className="h-full rounded-2xl border border-white/[0.08] hover:border-white/[0.16] overflow-hidden cursor-pointer flip-card-scene transition-colors duration-200"
+      className="relative h-full rounded-2xl border border-white/[0.08] hover:border-white/[0.16] overflow-hidden cursor-pointer flip-card-scene transition-colors duration-200"
       onClick={() => setFlipped((f) => !f)}
     >
+      <EntityStatusBadge reason={blockReason} />
       <div className={`flip-card-inner h-full${flipped ? " is-flipped" : ""}`}>
 
         {/* ── Front ──────────────────────────────────────────────── */}
         <div className={faceBase}>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-white/40 truncate flex-1">{name}</p>
+            <p className={`text-xs text-white/40 truncate flex-1 ${blockReason ? "pr-24" : ""}`}>{name}</p>
             {isNumeric && trendRef.current && (
               <span className="ml-2 shrink-0 text-white/25">
                 {trendRef.current === "up"
@@ -110,7 +147,7 @@ export function SensorCard({ entityId, titleOverride }: Props) {
               <span className={`text-4xl font-semibold tabular-nums ${valueColor}`}>
                 {displayValue}
               </span>
-              {unit && <span className="text-lg text-white/40">{unit}</span>}
+              {unit && !stateUnavailable && <span className="text-lg text-white/40">{unit}</span>}
             </div>
           </div>
         </div>
@@ -119,18 +156,18 @@ export function SensorCard({ entityId, titleOverride }: Props) {
         <div className={`${faceBase} flip-card-back justify-between`}>
           <div>
             <div className="flex items-start justify-between">
-              <p className="text-xs text-white/40 truncate flex-1">{name}</p>
+              <p className={`text-xs text-white/40 truncate flex-1 ${blockReason ? "pr-24" : ""}`}>{name}</p>
               <RotateCcw className="h-3 w-3 text-white/20 shrink-0 ml-2 mt-0.5" />
             </div>
             <div className="flex items-baseline gap-1 mt-1">
               <span className={`text-xl font-semibold tabular-nums ${valueColor}`}>
                 {displayValue}
               </span>
-              {unit && <span className="text-sm text-white/40">{unit}</span>}
+              {unit && !stateUnavailable && <span className="text-sm text-white/40">{unit}</span>}
             </div>
           </div>
           <div className="h-12">
-            {history.length > 1 ? (
+            {!stateUnavailable && history.length > 1 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={history} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
                   <defs>

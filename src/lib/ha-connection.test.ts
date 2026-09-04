@@ -4,6 +4,7 @@ import {
   createLongLivedTokenAuth,
   subscribeEntities,
   type Connection,
+  type HassEntities,
 } from "home-assistant-js-websocket";
 import {
   getConnection,
@@ -73,10 +74,14 @@ beforeEach(() => {
   createAuthMock.mockImplementation(
     (hassUrl) => ({ hassUrl }) as unknown as ReturnType<typeof createLongLivedTokenAuth>
   );
-  subscribeEntitiesMock.mockReturnValue(vi.fn());
+  subscribeEntitiesMock.mockImplementation((_connection, callback) => {
+    callback({});
+    return vi.fn();
+  });
 
   useEntityStore.setState({
     entities: {},
+    hasLoadedEntities: false,
     connectionStatus: "disconnected",
   });
 });
@@ -99,6 +104,26 @@ describe("Home Assistant connection lifecycle", () => {
     );
     expect(getConnection()).toBe(connection.connection);
     expect(useEntityStore.getState().connectionStatus).toBe("connected");
+  });
+
+  it("waits for the first entity snapshot before reporting connected", async () => {
+    const connection = makeConnection();
+    let publishEntities: ((entities: HassEntities) => void) | undefined;
+    createConnectionMock.mockResolvedValue(connection.connection);
+    subscribeEntitiesMock.mockImplementationOnce((_connection, callback) => {
+      publishEntities = callback;
+      return vi.fn();
+    });
+
+    await initConnection("https://ha.example.com", "token");
+
+    expect(useEntityStore.getState().connectionStatus).toBe("connecting");
+    expect(useEntityStore.getState().hasLoadedEntities).toBe(false);
+
+    publishEntities?.({});
+
+    expect(useEntityStore.getState().connectionStatus).toBe("connected");
+    expect(useEntityStore.getState().hasLoadedEntities).toBe(true);
   });
 
   it("retries after an initial connection failure", async () => {

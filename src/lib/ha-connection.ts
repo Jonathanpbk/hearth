@@ -63,6 +63,7 @@ function startNewLifecycle(config: ConnectionConfig): void {
   lifecycleId += 1;
   clearRetryTimer();
   teardownActiveConnection();
+  useEntityStore.getState().beginEntityLoad();
   useEntityStore.getState().setConnectionStatus("connecting");
   void connect(lifecycleId, config);
 }
@@ -129,11 +130,11 @@ async function connect(id: number, config: ConnectionConfig): Promise<void> {
     unsubscribeEntities = subscribeEntities(connection, (entities) => {
       if (id === lifecycleId && connection === activeConnection) {
         useEntityStore.getState().setEntities(entities);
+        useEntityStore.getState().setConnectionStatus("connected");
       }
     });
     removeConnectionListeners = attachConnectionListeners(connection, config, id);
     retryAttempt = 0;
-    useEntityStore.getState().setConnectionStatus("connected");
   } catch {
     connection?.close();
     if (activeConnection === connection) activeConnection = null;
@@ -155,6 +156,7 @@ export async function initConnection(
   retryAttempt = 0;
   clearRetryTimer();
   teardownActiveConnection();
+  useEntityStore.getState().beginEntityLoad();
 
   if (!isConfigured(config)) {
     setDisconnected();
