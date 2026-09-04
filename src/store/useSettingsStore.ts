@@ -2,6 +2,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { defaultSettings, type Settings } from "../types/settings";
 import type { CardConfig, Page, StoredLayoutItem } from "../types/dashboard";
+import {
+  mergePersistedSettings,
+  type PersistedSettings,
+} from "../lib/settings-migration";
 
 interface SettingsStore {
   settings: Settings;
@@ -15,12 +19,6 @@ interface SettingsStore {
   removeCard: (pageId: string, cardId: string) => void;
   updateCard: (pageId: string, card: CardConfig) => void;
   updateLayout: (pageId: string, layout: StoredLayoutItem[]) => void;
-}
-
-function pagesOr(p: Partial<Settings>): Page[] {
-  if (!p.pages?.length) return defaultSettings.pages;
-  // Backfill `icon` for pages saved before the field existed.
-  return p.pages.map((page) => ({ ...page, icon: page.icon || "LayoutDashboard" }));
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -142,17 +140,14 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       name: "hearth-settings",
       storage: createJSONStorage(() => localStorage),
-      // Deep-merge stored settings so new fields (e.g. pages) get their defaults
-      // when loading data saved before this field existed.
+      // Preserve old settings while migrating the former local/remote URL pair.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<SettingsStore>;
         return {
           ...current,
-          settings: {
-            ...defaultSettings,
-            ...(p.settings ?? {}),
-            pages: pagesOr(p.settings ?? {}),
-          },
+          settings: mergePersistedSettings(
+            (p.settings ?? {}) as PersistedSettings
+          ),
         };
       },
     }

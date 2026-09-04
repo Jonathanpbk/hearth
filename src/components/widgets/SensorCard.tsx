@@ -54,18 +54,14 @@ export function SensorCard({ entityId, titleOverride }: Props) {
   const prevValueRef = useRef<number | null>(null);
   const trendRef = useRef<"up" | "down" | null>(null);
 
-  const haLocalUrl = useSettingsStore((s) => s.settings.haLocalUrl);
-  const haRemoteUrl = useSettingsStore((s) => s.settings.haRemoteUrl);
+  const haUrl = useSettingsStore((s) => s.settings.haUrl);
   const haToken = useSettingsStore((s) => s.settings.haToken);
-  const activeHaUrl = useEntityStore((s) => s.activeHaUrl);
   const connectionStatus = useEntityStore((s) => s.connectionStatus);
 
-  const baseUrl = activeHaUrl === "local" ? haLocalUrl : haRemoteUrl;
-
   useEffect(() => {
-    if (connectionStatus !== "connected" || !baseUrl || !haToken) return;
-    void fetchHistory(baseUrl, haToken, entityId).then(setHistory);
-  }, [entityId, baseUrl, haToken, connectionStatus]);
+    if (connectionStatus !== "connected" || !haUrl || !haToken) return;
+    void fetchHistory(haUrl, haToken, entityId).then(setHistory);
+  }, [entityId, haUrl, haToken, connectionStatus]);
 
   if (!entity) return <div className="h-full rounded-2xl border border-white/[0.04] bg-[var(--color-surface)] overflow-hidden" />;
 

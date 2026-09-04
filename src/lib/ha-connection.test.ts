@@ -74,54 +74,31 @@ beforeEach(() => {
     (hassUrl) => ({ hassUrl }) as unknown as ReturnType<typeof createLongLivedTokenAuth>
   );
   subscribeEntitiesMock.mockReturnValue(vi.fn());
-  vi.stubGlobal("fetch", vi.fn());
 
   useEntityStore.setState({
     entities: {},
     connectionStatus: "disconnected",
-    activeHaUrl: null,
   });
 });
 
 afterEach(() => {
   stopConnection();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 describe("Home Assistant connection lifecycle", () => {
-  it("prefers the local endpoint when its probe succeeds", async () => {
-    const local = makeConnection();
-    vi.mocked(fetch).mockResolvedValue({} as Response);
-    createConnectionMock.mockResolvedValue(local.connection);
+  it("normalizes the configured URL and token", async () => {
+    const connection = makeConnection();
+    createConnectionMock.mockResolvedValue(connection.connection);
 
-    await initConnection(" http://ha.local/ ", "https://ha.example.com/", " token ");
+    await initConnection(" https://ha.example.com/ ", " token ");
 
-    expect(createAuthMock).toHaveBeenCalledWith("http://ha.local", "token");
-    expect(getConnection()).toBe(local.connection);
-    expect(useEntityStore.getState()).toMatchObject({
-      connectionStatus: "connected",
-      activeHaUrl: "local",
-    });
-  });
-
-  it("falls back to remote when the local WebSocket connection fails", async () => {
-    const remote = makeConnection();
-    vi.mocked(fetch).mockResolvedValue({} as Response);
-    createConnectionMock
-      .mockRejectedValueOnce(new Error("local failed"))
-      .mockResolvedValueOnce(remote.connection);
-
-    await initConnection("http://ha.local", "https://ha.example.com", "token");
-
-    expect(createAuthMock).toHaveBeenNthCalledWith(1, "http://ha.local", "token");
-    expect(createAuthMock).toHaveBeenNthCalledWith(
-      2,
+    expect(createAuthMock).toHaveBeenCalledWith(
       "https://ha.example.com",
       "token"
     );
-    expect(getConnection()).toBe(remote.connection);
-    expect(useEntityStore.getState().activeHaUrl).toBe("remote");
+    expect(getConnection()).toBe(connection.connection);
+    expect(useEntityStore.getState().connectionStatus).toBe("connected");
   });
 
   it("retries after an initial connection failure", async () => {
@@ -131,7 +108,7 @@ describe("Home Assistant connection lifecycle", () => {
       .mockRejectedValueOnce(new Error("offline"))
       .mockResolvedValueOnce(retryConnection.connection);
 
-    await initConnection("", "https://ha.example.com", "token");
+    await initConnection("https://ha.example.com", "token");
     expect(useEntityStore.getState().connectionStatus).toBe("disconnected");
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -141,26 +118,38 @@ describe("Home Assistant connection lifecycle", () => {
     expect(useEntityStore.getState().connectionStatus).toBe("connected");
   });
 
-  it("reselects the remote endpoint after a local connection drops", async () => {
+  it("reconnects after an established connection drops", async () => {
     vi.useFakeTimers();
-    const local = makeConnection();
-    const remote = makeConnection();
-    vi.mocked(fetch)
-      .mockResolvedValueOnce({} as Response)
-      .mockRejectedValueOnce(new TypeError("local unreachable"));
+    const first = makeConnection();
+    const second = makeConnection();
     createConnectionMock
-      .mockResolvedValueOnce(local.connection)
-      .mockResolvedValueOnce(remote.connection);
+      .mockResolvedValueOnce(first.connection)
+      .mockResolvedValueOnce(second.connection);
 
-    await initConnection("http://ha.local", "https://ha.example.com", "token");
-    local.emit("disconnected");
+    await initConnection("https://ha.example.com", "token");
+    first.emit("disconnected");
 
     expect(useEntityStore.getState().connectionStatus).toBe("disconnected");
     await vi.advanceTimersByTimeAsync(2000);
 
-    expect(local.close).toHaveBeenCalledOnce();
-    expect(getConnection()).toBe(remote.connection);
-    expect(useEntityStore.getState().activeHaUrl).toBe("remote");
+    expect(first.close).toHaveBeenCalledOnce();
+    expect(createConnectionMock).toHaveBeenCalledTimes(2);
+    expect(getConnection()).toBe(second.connection);
+  });
+
+  it("keeps the connection when it becomes ready during the grace period", async () => {
+    vi.useFakeTimers();
+    const connection = makeConnection();
+    createConnectionMock.mockResolvedValue(connection.connection);
+
+    await initConnection("https://ha.example.com", "token");
+    connection.emit("disconnected");
+    connection.emit("ready");
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(createConnectionMock).toHaveBeenCalledOnce();
+    expect(connection.close).not.toHaveBeenCalled();
+    expect(useEntityStore.getState().connectionStatus).toBe("connected");
   });
 
   it("closes a stale connection created by an overlapping attempt", async () => {
@@ -177,30 +166,37 @@ describe("Home Assistant connection lifecycle", () => {
       )
       .mockResolvedValueOnce(current.connection);
 
-    const staleAttempt = initConnection("http://ha.local", "", "token");
+    const staleAttempt = initConnection("https://old.example.com", "token");
     await vi.waitFor(() => expect(createConnectionMock).toHaveBeenCalledOnce());
 
-    await initConnection("", "https://ha.example.com", "token");
+    await initConnection("https://ha.example.com", "token");
     resolveStale?.(stale.connection);
     await staleAttempt;
 
     expect(stale.close).toHaveBeenCalledOnce();
     expect(getConnection()).toBe(current.connection);
-    expect(useEntityStore.getState().activeHaUrl).toBe("remote");
   });
 
-  it("cancels retries and closes the active connection when stopped", async () => {
-    const connection = makeConnection();
-    createConnectionMock.mockResolvedValue(connection.connection);
+  it("does not connect without both a URL and token", async () => {
+    await initConnection("", "token");
+    await initConnection("https://ha.example.com", "");
 
-    await initConnection("", "https://ha.example.com", "token");
+    expect(createConnectionMock).not.toHaveBeenCalled();
+    expect(useEntityStore.getState().connectionStatus).toBe("disconnected");
+  });
+
+  it("closes the active connection when stopped", async () => {
+    const connection = makeConnection();
+    const unsubscribe = vi.fn();
+    createConnectionMock.mockResolvedValue(connection.connection);
+    subscribeEntitiesMock.mockReturnValue(unsubscribe);
+
+    await initConnection("https://ha.example.com", "token");
     stopConnection();
 
+    expect(unsubscribe).toHaveBeenCalledOnce();
     expect(connection.close).toHaveBeenCalledOnce();
     expect(() => getConnection()).toThrow("No active HA connection");
-    expect(useEntityStore.getState()).toMatchObject({
-      connectionStatus: "disconnected",
-      activeHaUrl: null,
-    });
+    expect(useEntityStore.getState().connectionStatus).toBe("disconnected");
   });
 });

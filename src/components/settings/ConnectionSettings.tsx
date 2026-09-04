@@ -5,12 +5,10 @@ import { CONNECTION_TEST_TIMEOUT_MS } from "../../config/defaults";
 type TestState = "idle" | "loading" | "ok" | "error";
 
 interface Props {
-  haLocalUrl: string;
-  haRemoteUrl: string;
+  haUrl: string;
   haToken: string;
   weatherEntityId: string;
-  onLocalUrlChange: (v: string) => void;
-  onRemoteUrlChange: (v: string) => void;
+  onUrlChange: (v: string) => void;
   onTokenChange: (v: string) => void;
   onWeatherEntityChange: (v: string) => void;
 }
@@ -32,17 +30,14 @@ const testBtnClass =
   "px-3 py-2.5 text-xs uppercase tracking-widest text-white/50 border border-white/10 rounded-lg hover:border-white/20 hover:text-white/80 transition-colors disabled:opacity-40 shrink-0";
 
 export function ConnectionSettings({
-  haLocalUrl,
-  haRemoteUrl,
+  haUrl,
   haToken,
   weatherEntityId,
-  onLocalUrlChange,
-  onRemoteUrlChange,
+  onUrlChange,
   onTokenChange,
   onWeatherEntityChange,
 }: Props) {
-  const [localTest, setLocalTest] = useState<TestState>("idle");
-  const [remoteTest, setRemoteTest] = useState<TestState>("idle");
+  const [urlTest, setUrlTest] = useState<TestState>("idle");
   const [showToken, setShowToken] = useState(false);
 
   async function testUrl(url: string, setTest: (s: TestState) => void) {
@@ -70,52 +65,27 @@ export function ConnectionSettings({
       <h2 className={labelClass}>Connection</h2>
 
       <div>
-        <label className={labelClass}>Local URL</label>
+        <label className={labelClass}>Home Assistant URL</label>
         <div className="flex items-center gap-2">
           <input
-            type="text"
-            value={haLocalUrl}
+            type="url"
+            value={haUrl}
             onChange={(e) => {
-              onLocalUrlChange(e.target.value);
-              setLocalTest("idle");
-            }}
-            placeholder="http://192.168.0.x:8123"
-            className={inputClass}
-            spellCheck={false}
-          />
-          <button
-            onClick={() => testUrl(haLocalUrl, setLocalTest)}
-            disabled={localTest === "loading"}
-            className={testBtnClass}
-          >
-            Test
-          </button>
-          <TestIcon state={localTest} />
-        </div>
-      </div>
-
-      <div>
-        <label className={labelClass}>Remote URL</label>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={haRemoteUrl}
-            onChange={(e) => {
-              onRemoteUrlChange(e.target.value);
-              setRemoteTest("idle");
+              onUrlChange(e.target.value);
+              setUrlTest("idle");
             }}
             placeholder="https://ha.yourdomain.com"
             className={inputClass}
             spellCheck={false}
           />
           <button
-            onClick={() => testUrl(haRemoteUrl, setRemoteTest)}
-            disabled={remoteTest === "loading"}
+            onClick={() => testUrl(haUrl, setUrlTest)}
+            disabled={urlTest === "loading"}
             className={testBtnClass}
           >
             Test
           </button>
-          <TestIcon state={remoteTest} />
+          <TestIcon state={urlTest} />
         </div>
       </div>
 

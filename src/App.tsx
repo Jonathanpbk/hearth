@@ -12,24 +12,20 @@ import { DashboardView } from "./views/DashboardView";
 import { SettingsView } from "./views/SettingsView";
 
 function HAConnectionManager() {
-  const haLocalUrl = useSettingsStore((s) => s.settings.haLocalUrl);
-  const haRemoteUrl = useSettingsStore((s) => s.settings.haRemoteUrl);
+  const haUrl = useSettingsStore((s) => s.settings.haUrl);
   const haToken = useSettingsStore((s) => s.settings.haToken);
 
   useEffect(() => {
-    void initConnection(haLocalUrl, haRemoteUrl, haToken);
+    void initConnection(haUrl, haToken);
     return stopConnection;
-  }, [haLocalUrl, haRemoteUrl, haToken]);
+  }, [haUrl, haToken]);
 
   return null;
 }
 
 function RequireConfig({ children }: { children: ReactNode }) {
   const settings = useSettingsStore((s) => s.settings);
-  const isConfigured = !!(
-    settings.haToken &&
-    (settings.haLocalUrl || settings.haRemoteUrl)
-  );
+  const isConfigured = !!(settings.haToken && settings.haUrl);
   if (!isConfigured) return <Navigate to="/settings" replace />;
   return <>{children}</>;
 }

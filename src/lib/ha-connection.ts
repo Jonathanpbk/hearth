@@ -6,21 +6,13 @@ import {
 } from "home-assistant-js-websocket";
 import { useEntityStore } from "../store/useEntityStore";
 import {
-  HA_PROBE_TIMEOUT_MS,
   HA_RECONNECT_GRACE_MS,
   HA_RETRY_DELAYS_MS,
 } from "../config/defaults";
-import type { HaUrlSource } from "../types/ha";
 
 interface ConnectionConfig {
-  localUrl: string;
-  remoteUrl: string;
-  token: string;
-}
-
-interface Endpoint {
   url: string;
-  source: HaUrlSource;
+  token: string;
 }
 
 let activeConnection: Connection | null = null;
@@ -34,20 +26,15 @@ function normalizeUrl(url: string): string {
   return url.trim().replace(/\/+$/, "");
 }
 
-function toConfig(
-  haLocalUrl: string,
-  haRemoteUrl: string,
-  haToken: string
-): ConnectionConfig {
+function toConfig(haUrl: string, haToken: string): ConnectionConfig {
   return {
-    localUrl: normalizeUrl(haLocalUrl),
-    remoteUrl: normalizeUrl(haRemoteUrl),
+    url: normalizeUrl(haUrl),
     token: haToken.trim(),
   };
 }
 
 function isConfigured(config: ConnectionConfig): boolean {
-  return Boolean(config.token && (config.localUrl || config.remoteUrl));
+  return Boolean(config.url && config.token);
 }
 
 function clearRetryTimer(): void {
@@ -68,42 +55,8 @@ function teardownActiveConnection(): void {
   activeConnection = null;
 }
 
-async function isReachable(url: string, token: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HA_PROBE_TIMEOUT_MS);
-
-  try {
-    await fetch(url + "/api/", {
-      headers: { Authorization: "Bearer " + token },
-      signal: controller.signal,
-    });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function resolveEndpoints(config: ConnectionConfig): Promise<Endpoint[]> {
-  const local = config.localUrl
-    ? { url: config.localUrl, source: "local" as const }
-    : null;
-  const remote = config.remoteUrl
-    ? { url: config.remoteUrl, source: "remote" as const }
-    : null;
-
-  if (!local) return remote ? [remote] : [];
-  if (!remote) return [local];
-
-  const localReachable = await isReachable(local.url, config.token);
-  return localReachable ? [local, remote] : [remote, local];
-}
-
 function setDisconnected(): void {
-  const store = useEntityStore.getState();
-  store.setConnectionStatus("disconnected");
-  store.setActiveHaUrl(null);
+  useEntityStore.getState().setConnectionStatus("disconnected");
 }
 
 function startNewLifecycle(config: ConnectionConfig): void {
@@ -133,35 +86,14 @@ function scheduleRetry(
   }, delay);
 }
 
-async function switchToPreferredEndpoint(
-  id: number,
-  connection: Connection,
-  endpoint: Endpoint,
-  config: ConnectionConfig
-): Promise<void> {
-  const [preferred] = await resolveEndpoints(config);
-  if (
-    id !== lifecycleId ||
-    connection !== activeConnection ||
-    !preferred ||
-    preferred.url === endpoint.url
-  ) {
-    return;
-  }
-
-  retryAttempt = 0;
-  startNewLifecycle(config);
-}
-
 function attachConnectionListeners(
   connection: Connection,
-  endpoint: Endpoint,
   config: ConnectionConfig,
   id: number
 ): () => void {
   const handleDisconnected = () => {
     if (id !== lifecycleId || connection !== activeConnection) return;
-    useEntityStore.getState().setConnectionStatus("disconnected");
+    setDisconnected();
     scheduleRetry(id, config, HA_RECONNECT_GRACE_MS);
   };
 
@@ -169,10 +101,7 @@ function attachConnectionListeners(
     if (id !== lifecycleId || connection !== activeConnection) return;
     clearRetryTimer();
     retryAttempt = 0;
-    const store = useEntityStore.getState();
-    store.setActiveHaUrl(endpoint.source);
-    store.setConnectionStatus("connected");
-    void switchToPreferredEndpoint(id, connection, endpoint, config);
+    useEntityStore.getState().setConnectionStatus("connected");
   };
 
   connection.addEventListener("disconnected", handleDisconnected);
@@ -185,58 +114,41 @@ function attachConnectionListeners(
 }
 
 async function connect(id: number, config: ConnectionConfig): Promise<void> {
-  const endpoints = await resolveEndpoints(config);
-  if (id !== lifecycleId) return;
+  let connection: Connection | null = null;
 
-  for (const endpoint of endpoints) {
-    let connection: Connection | null = null;
-    try {
-      const auth = createLongLivedTokenAuth(endpoint.url, config.token);
-      connection = await createConnection({ auth });
+  try {
+    const auth = createLongLivedTokenAuth(config.url, config.token);
+    connection = await createConnection({ auth });
 
-      if (id !== lifecycleId) {
-        connection.close();
-        return;
-      }
-
-      activeConnection = connection;
-      const unsubscribe = subscribeEntities(connection, (entities) => {
-        if (id === lifecycleId && connection === activeConnection) {
-          useEntityStore.getState().setEntities(entities);
-        }
-      });
-
-      unsubscribeEntities = unsubscribe;
-      removeConnectionListeners = attachConnectionListeners(
-        connection,
-        endpoint,
-        config,
-        id
-      );
-      retryAttempt = 0;
-
-      const store = useEntityStore.getState();
-      store.setActiveHaUrl(endpoint.source);
-      store.setConnectionStatus("connected");
+    if (id !== lifecycleId) {
+      connection.close();
       return;
-    } catch {
-      connection?.close();
-      if (activeConnection === connection) activeConnection = null;
-      if (id !== lifecycleId) return;
     }
-  }
 
-  if (id !== lifecycleId) return;
-  setDisconnected();
-  scheduleRetry(id, config);
+    activeConnection = connection;
+    unsubscribeEntities = subscribeEntities(connection, (entities) => {
+      if (id === lifecycleId && connection === activeConnection) {
+        useEntityStore.getState().setEntities(entities);
+      }
+    });
+    removeConnectionListeners = attachConnectionListeners(connection, config, id);
+    retryAttempt = 0;
+    useEntityStore.getState().setConnectionStatus("connected");
+  } catch {
+    connection?.close();
+    if (activeConnection === connection) activeConnection = null;
+    if (id !== lifecycleId) return;
+
+    setDisconnected();
+    scheduleRetry(id, config);
+  }
 }
 
 export async function initConnection(
-  haLocalUrl: string,
-  haRemoteUrl: string,
+  haUrl: string,
   haToken: string
 ): Promise<void> {
-  const config = toConfig(haLocalUrl, haRemoteUrl, haToken);
+  const config = toConfig(haUrl, haToken);
 
   lifecycleId += 1;
   const id = lifecycleId;
