@@ -1,4 +1,3 @@
-export const HA_PROBE_TIMEOUT_MS = 2000;
 export const HA_RECONNECT_GRACE_MS = 2000;
 export const HA_RETRY_DELAYS_MS = [1000, 2000, 5000, 10000, 30000] as const;
 export const CONNECTION_TEST_TIMEOUT_MS = 5000;

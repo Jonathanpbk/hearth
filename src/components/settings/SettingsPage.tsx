@@ -28,10 +28,7 @@ export function SettingsPage() {
   const [form, setForm] = useState<Settings>(settings);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const isConfigured = !!(
-    settings.haToken &&
-    (settings.haLocalUrl || settings.haRemoteUrl)
-  );
+  const isConfigured = !!(settings.haToken && settings.haUrl);
 
   function handleChange<K extends keyof Settings>(key: K, value: Settings[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -80,12 +77,10 @@ export function SettingsPage() {
         </div>
 
         <ConnectionSettings
-          haLocalUrl={form.haLocalUrl}
-          haRemoteUrl={form.haRemoteUrl}
+          haUrl={form.haUrl}
           haToken={form.haToken}
           weatherEntityId={form.weatherEntityId}
-          onLocalUrlChange={(v) => handleChange("haLocalUrl", v)}
-          onRemoteUrlChange={(v) => handleChange("haRemoteUrl", v)}
+          onUrlChange={(v) => handleChange("haUrl", v)}
           onTokenChange={(v) => handleChange("haToken", v)}
           onWeatherEntityChange={(v) => handleChange("weatherEntityId", v)}
         />

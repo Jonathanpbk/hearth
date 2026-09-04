@@ -1,8 +1,7 @@
 import type { Page } from "./dashboard";
 
 export interface Settings {
-  haLocalUrl: string;
-  haRemoteUrl: string;
+  haUrl: string;
   haToken: string;
   weatherEntityId: string;
   cameraEnabled: boolean;
@@ -18,8 +17,7 @@ export interface Settings {
 }
 
 export const defaultSettings: Settings = {
-  haLocalUrl: "",
-  haRemoteUrl: "",
+  haUrl: "",
   haToken: "",
   weatherEntityId: "weather.home",
   cameraEnabled: false,

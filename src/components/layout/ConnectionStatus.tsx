@@ -1,4 +1,3 @@
-import { Home, Globe } from "lucide-react";
 import { useEntityStore } from "../../store/useEntityStore";
 
 const DOT_COLOR = {
@@ -9,17 +8,10 @@ const DOT_COLOR = {
 
 export function ConnectionStatus() {
   const status = useEntityStore((s) => s.connectionStatus);
-  const source = useEntityStore((s) => s.activeHaUrl);
 
   return (
-    <div className="flex items-center gap-1.5" title={`${status} (${source ?? "—"})`}>
+    <div className="flex items-center gap-1.5" title={status}>
       <span className={`h-2 w-2 rounded-full shrink-0 ${DOT_COLOR[status]}`} />
-      {source === "local" && (
-        <Home className="h-3.5 w-3.5 text-white/30" />
-      )}
-      {source === "remote" && (
-        <Globe className="h-3.5 w-3.5 text-white/30" />
-      )}
     </div>
   );
 }
