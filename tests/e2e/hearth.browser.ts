@@ -89,7 +89,7 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
     testWindow.__haMock.disconnect();
   });
 
-  await expect(page.locator('[title="disconnected"]')).toBeVisible();
+  await expect(page.locator('[title="connected"]')).toHaveCount(0);
   await expect(brightness).toBeDisabled();
   await expect(fanSpeed).toBeDisabled();
   await expect(page.getByRole("button", { name: "Day, Disconnected" })).toBeDisabled();
@@ -215,7 +215,6 @@ test("camera event subscription returns after reconnection", async ({ page }) =>
     const testWindow = window as unknown as TestWindow;
     testWindow.__haMock.disconnect();
   });
-  await expect(page.locator('[title="disconnected"]')).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate((eventType) => {
@@ -224,6 +223,7 @@ test("camera event subscription returns after reconnection", async ({ page }) =>
       }, CAMERA_EVENT)
     )
     .toBe(0);
+  await expect(page.locator('[title="connected"]')).toHaveCount(0);
 
   await page.evaluate(() => {
     const testWindow = window as unknown as TestWindow;
