@@ -86,7 +86,11 @@ export async function startWebRTCStream(
     });
 
     ws.addEventListener("error", () =>
-      settle(() => { pc.close(); reject(new Error("WebRTC: WebSocket error")); })
+      settle(() => {
+        ws.close();
+        pc.close();
+        reject(new Error("WebRTC: WebSocket error"));
+      })
     );
   });
 }

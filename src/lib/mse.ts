@@ -52,7 +52,10 @@ export async function startMSEStream(
     });
 
     ws.addEventListener("error", () =>
-      settle(() => reject(new Error("MSE: WebSocket error")))
+      settle(() => {
+        ws.close();
+        reject(new Error("MSE: WebSocket error"));
+      })
     );
   });
 }

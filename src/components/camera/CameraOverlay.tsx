@@ -10,6 +10,7 @@ export function CameraOverlay() {
   const streamName = useCameraStore((s) => s.streamName);
   const streamMode = useCameraStore((s) => s.streamMode);
   const duration = useCameraStore((s) => s.duration);
+  const triggerId = useCameraStore((s) => s.triggerId);
   const dismiss = useCameraStore((s) => s.dismiss);
   const go2rtcUrl = useSettingsStore((s) => s.settings.go2rtcUrl);
 
@@ -26,6 +27,7 @@ export function CameraOverlay() {
     if (!visible) return;
 
     const el = progressRef.current;
+    if (el) el.style.transform = "scaleX(1)";
     const start = performance.now();
     let rafId: number;
 
@@ -42,14 +44,18 @@ export function CameraOverlay() {
 
     rafId = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(rafId);
-  }, [visible, duration, dismiss]);
+  }, [visible, duration, triggerId, dismiss]);
 
   return (
     // Always in the DOM so mounting never causes layout shifts.
     // Visibility is controlled via opacity + pointer-events.
     <div
+      role="dialog"
+      aria-label="Camera overlay"
+      aria-modal={visible ? true : undefined}
+      aria-hidden={!visible}
       className={`fixed inset-0 z-[9999] bg-black flex items-center justify-center transition-opacity duration-150 ${
-        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+        visible ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"
       }`}
       onClick={dismiss}
     >

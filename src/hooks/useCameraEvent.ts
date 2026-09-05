@@ -3,7 +3,6 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { useEntityStore } from "../store/useEntityStore";
 import { useCameraStore } from "../store/useCameraStore";
 import { getConnection } from "../lib/ha-connection";
-import type { CameraPayload } from "../store/useCameraStore";
 
 export function useCameraEvent(): void {
   const cameraEnabled = useSettingsStore((s) => s.settings.cameraEnabled);
@@ -21,22 +20,28 @@ export function useCameraEvent(): void {
     }
 
     let unsub: (() => void) | undefined;
+    let disposed = false;
 
     conn
-      .subscribeMessage<{ data: CameraPayload }>(
+      .subscribeMessage<{ data?: unknown }>(
         (event) => {
           useCameraStore.getState().trigger(event.data);
         },
         { type: "subscribe_events", event_type: cameraEventName }
       )
       .then((unsubFn) => {
-        unsub = unsubFn;
+        if (disposed) {
+          unsubFn();
+        } else {
+          unsub = unsubFn;
+        }
       })
       .catch((err) => {
-        console.error("[CameraEvent] subscribe failed:", err);
+        if (!disposed) console.error("[CameraEvent] subscribe failed:", err);
       });
 
     return () => {
+      disposed = true;
       unsub?.();
     };
   }, [cameraEnabled, cameraEventName, connectionStatus]);
