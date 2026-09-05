@@ -197,12 +197,14 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
         binaryType: BinaryType = "blob";
         readyState = FakeWebSocket.CONNECTING;
         readonly isHomeAssistant: boolean;
+        readonly isGo2Rtc: boolean;
         readonly subscriptions = new Map<number, string>();
 
         constructor(url: string | URL) {
           super();
           this.url = String(url);
           this.isHomeAssistant = this.url.includes("127.0.0.1:4173/api/websocket");
+          this.isGo2Rtc = this.url.includes("go2rtc.test");
           sockets.add(this);
           window.setTimeout(() => this.openFromServer(), 0);
         }
@@ -215,7 +217,7 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
           this.readyState = FakeWebSocket.OPEN;
           this.dispatchEvent(new Event("open"));
 
-          if (!this.isHomeAssistant) {
+          if (this.isGo2Rtc) {
             window.setTimeout(() => {
               if (this.readyState === FakeWebSocket.OPEN) {
                 this.dispatchEvent(new Event("error"));
@@ -348,11 +350,15 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
       browserWindow.__haMock = {
         disconnect() {
           online = false;
-          for (const socket of [...sockets]) socket.disconnectFromServer();
+          for (const socket of [...sockets]) {
+            if (socket.isHomeAssistant) socket.disconnectFromServer();
+          }
         },
         reconnect() {
           online = true;
-          for (const socket of [...sockets]) socket.reconnectFromServer();
+          for (const socket of [...sockets]) {
+            if (socket.isHomeAssistant) socket.reconnectFromServer();
+          }
         },
         emitEvent(eventType, data) {
           let delivered = 0;
