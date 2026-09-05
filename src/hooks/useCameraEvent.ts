@@ -27,7 +27,8 @@ export function useCameraEvent(): void {
         (event) => {
           useCameraStore.getState().trigger(event.data);
         },
-        { type: "subscribe_events", event_type: cameraEventName }
+        { type: "subscribe_events", event_type: cameraEventName },
+        { resubscribe: false }
       )
       .then((unsubFn) => {
         if (disposed) {
