@@ -46,6 +46,9 @@ health_check() {
 pwa_check() {
     local base_url="$1"
     local service_worker_headers
+    local app_html
+    local worker_script
+    local recovery_html
     local app_bundle
     local worker_bundle
 
@@ -53,20 +56,15 @@ pwa_check() {
     grep -qi '^Cache-Control:.*no-store' <<<"$service_worker_headers" || return 1
     grep -qi '^Service-Worker-Allowed: /' <<<"$service_worker_headers" || return 1
 
-    app_bundle="$(
-        curl -fsS --max-time 10 "$base_url/" |
-            grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' |
-            head -n 1
-    )" || return 1
-    worker_bundle="$(
-        curl -fsS --max-time 10 "$base_url/sw.js" |
-            grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' |
-            head -n 1
-    )" || return 1
+    app_html="$(curl -fsS --max-time 10 "$base_url/")" || return 1
+    worker_script="$(curl -fsS --max-time 10 "$base_url/sw.js")" || return 1
+    recovery_html="$(curl -fsS --max-time 10 "$base_url/api/pwa-update.html")" || return 1
+
+    app_bundle="$(grep -m 1 -oE 'assets/index-[A-Za-z0-9_-]+\.js' <<<"$app_html")" || return 1
+    worker_bundle="$(grep -m 1 -oE 'assets/index-[A-Za-z0-9_-]+\.js' <<<"$worker_script")" || return 1
 
     [[ -n "$app_bundle" && "$app_bundle" == "$worker_bundle" ]] || return 1
-    curl -fsS --max-time 10 "$base_url/api/pwa-update.html" |
-        grep -q '<title>Updating Hearth</title>' || return 1
+    grep -q '<title>Updating Hearth</title>' <<<"$recovery_html" || return 1
 
     log "PWA checks passed. Bundle: $app_bundle"
 }
@@ -154,8 +152,19 @@ mapfile -t older_backups < <(
 )
 
 if ((${#older_backups[@]} > 0)); then
+    older_images=()
+    for older_backup in "${older_backups[@]}"; do
+        older_images+=("$(docker inspect "$older_backup" --format '{{.Config.Image}}')")
+    done
+
     log "Removing older rollback containers"
-    if ! docker rm "${older_backups[@]}" >/dev/null; then
+    if docker rm "${older_backups[@]}" >/dev/null; then
+        for older_image in "${older_images[@]}"; do
+            if ! docker image rm "$older_image" >/dev/null 2>&1; then
+                log "Unused image $older_image was not removed"
+            fi
+        done
+    else
         log "An older rollback container was not removed"
     fi
 fi
