@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   installHearthTestHarness,
   type MockMessage,
@@ -9,10 +9,34 @@ interface TestWindow extends Window {
   __haMock: {
     disconnect: () => void;
     reconnect: () => void;
+    emitEvent: (eventType: string, data: unknown) => number;
+    subscriberCount: (eventType: string) => number;
   };
 }
 
 const INTERACTION_GUARD_SETTLE_MS = 600;
+const CAMERA_EVENT = "pwa_camera_trigger";
+
+async function waitForCameraSubscription(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate((eventType) => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__haMock.subscriberCount(eventType);
+      }, CAMERA_EVENT)
+    )
+    .toBe(1);
+}
+
+async function emitCameraEvent(page: Page, data: unknown): Promise<number> {
+  return page.evaluate(
+    ({ eventType, eventData }) => {
+      const testWindow = window as unknown as TestWindow;
+      return testWindow.__haMock.emitEvent(eventType, eventData);
+    },
+    { eventType: CAMERA_EVENT, eventData: data }
+  );
+}
 
 test.beforeEach(async ({ page }) => {
   await installHearthTestHarness(page);
@@ -65,7 +89,7 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
     testWindow.__haMock.disconnect();
   });
 
-  await expect(page.locator('[title="disconnected"]')).toBeVisible();
+  await expect(page.locator('[title="connected"]')).toHaveCount(0);
   await expect(brightness).toBeDisabled();
   await expect(fanSpeed).toBeDisabled();
   await expect(page.getByRole("button", { name: "Day, Disconnected" })).toBeDisabled();
@@ -130,4 +154,90 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("e2e-preserved")))
     .toBe("yes");
+});
+
+test("camera events validate payloads and reset the overlay timer", async ({ page }) => {
+  await waitForCameraSubscription(page);
+
+  const overlay = page.locator('[aria-label="Camera overlay"]');
+  expect(await emitCameraEvent(page, { camera_stream: "   " })).toBe(1);
+  await expect(overlay).toBeHidden();
+
+  expect(
+    await emitCameraEvent(page, {
+      camera_stream: "Driveway",
+      mode: "mse",
+      duration: 1500,
+    })
+  ).toBe(1);
+
+  await expect(overlay).toBeVisible();
+  await expect(page.getByRole("img", { name: "Driveway" })).toBeVisible();
+
+  await page.waitForTimeout(900);
+  expect(
+    await emitCameraEvent(page, {
+      camera_stream: "Driveway",
+      mode: "mse",
+      duration: 1500,
+    })
+  ).toBe(1);
+
+  await page.waitForTimeout(800);
+  await expect(overlay).toBeVisible();
+  await expect(overlay).toBeHidden({ timeout: 1000 });
+});
+
+test("camera playback failure is visible and dismissible", async ({ page }) => {
+  await page.route(
+    "https://go2rtc.test/api/stream.mjpeg?src=Offline",
+    async (route) => route.abort()
+  );
+  await waitForCameraSubscription(page);
+
+  expect(
+    await emitCameraEvent(page, {
+      camera_stream: "Offline",
+      mode: "webrtc",
+      duration: 5000,
+    })
+  ).toBe(1);
+
+  await expect(page.getByRole("alert")).toHaveText("Camera stream unavailable");
+  await page.getByRole("button", { name: "Close camera" }).click();
+  await expect(page.locator('[aria-label="Camera overlay"]')).toBeHidden();
+});
+
+test("camera event subscription returns after reconnection", async ({ page }) => {
+  await waitForCameraSubscription(page);
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__haMock.disconnect();
+  });
+  await expect
+    .poll(() =>
+      page.evaluate((eventType) => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__haMock.subscriberCount(eventType);
+      }, CAMERA_EVENT)
+    )
+    .toBe(0);
+  await expect(page.locator('[title="connected"]')).toHaveCount(0);
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__haMock.reconnect();
+  });
+  await expect(page.locator('[title="connected"]')).toBeVisible();
+  await waitForCameraSubscription(page);
+
+  expect(
+    await emitCameraEvent(page, {
+      camera_stream: "Doorbell",
+      mode: "mse",
+      duration: 5000,
+    })
+  ).toBe(1);
+  await expect(page.locator('[aria-label="Camera overlay"]')).toBeVisible();
 });

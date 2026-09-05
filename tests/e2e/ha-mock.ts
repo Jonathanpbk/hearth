@@ -12,6 +12,8 @@ export interface MockMessage {
   service?: string;
   target?: { entity_id?: string };
   service_data?: Record<string, unknown>;
+  event_type?: string;
+  subscription?: number;
 }
 
 export const mockEntities: Record<string, MockEntity> = {
@@ -111,8 +113,8 @@ export const persistedSettings = {
       haUrl: "http://127.0.0.1:4173",
       haToken: "test-token",
       weatherEntityId: "weather.home",
-      cameraEnabled: false,
-      go2rtcUrl: "",
+      cameraEnabled: true,
+      go2rtcUrl: "https://go2rtc.test",
       cameraEventName: "pwa_camera_trigger",
       cameraDefaultDuration: 10000,
       wakeLockEnabled: false,
@@ -154,6 +156,8 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
         __haMock: {
           disconnect: () => void;
           reconnect: () => void;
+          emitEvent: (eventType: string, data: unknown) => number;
+          subscriberCount: (eventType: string) => number;
         };
       };
       browserWindow.__haMessages = [];
@@ -192,18 +196,34 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
         bufferedAmount = 0;
         binaryType: BinaryType = "blob";
         readyState = FakeWebSocket.CONNECTING;
+        readonly isHomeAssistant: boolean;
+        readonly isGo2Rtc: boolean;
+        readonly subscriptions = new Map<number, string>();
 
         constructor(url: string | URL) {
           super();
           this.url = String(url);
+          this.isHomeAssistant = this.url.includes("127.0.0.1:4173/api/websocket");
+          this.isGo2Rtc = this.url.includes("go2rtc.test");
           sockets.add(this);
           window.setTimeout(() => this.openFromServer(), 0);
         }
 
         private openFromServer() {
-          if (!online || this.readyState !== FakeWebSocket.CONNECTING) return;
+          if (
+            (!online && this.isHomeAssistant) ||
+            this.readyState !== FakeWebSocket.CONNECTING
+          ) return;
           this.readyState = FakeWebSocket.OPEN;
           this.dispatchEvent(new Event("open"));
+
+          if (this.isGo2Rtc) {
+            window.setTimeout(() => {
+              if (this.readyState === FakeWebSocket.OPEN) {
+                this.dispatchEvent(new Event("error"));
+              }
+            }, 20);
+          }
         }
 
         private sendFromServer(payload: unknown) {
@@ -216,6 +236,8 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
         send(data: string | ArrayBufferLike | Blob | ArrayBufferView) {
           const message = JSON.parse(String(data)) as MockMessage;
           browserWindow.__haMessages.push(message);
+
+          if (!this.isHomeAssistant) return;
 
           if (message.type === "auth") {
             queueMicrotask(() =>
@@ -241,11 +263,37 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
             return;
           }
 
-          if (
-            message.type === "subscribe_events" ||
-            message.type === "unsubscribe_events" ||
-            message.type === "call_service"
-          ) {
+          if (message.type === "subscribe_events") {
+            if (message.id !== undefined && message.event_type) {
+              this.subscriptions.set(message.id, message.event_type);
+            }
+            queueMicrotask(() =>
+              this.sendFromServer({
+                id: message.id,
+                type: "result",
+                success: true,
+                result: {},
+              })
+            );
+            return;
+          }
+
+          if (message.type === "unsubscribe_events") {
+            if (message.subscription !== undefined) {
+              this.subscriptions.delete(message.subscription);
+            }
+            queueMicrotask(() =>
+              this.sendFromServer({
+                id: message.id,
+                type: "result",
+                success: true,
+                result: {},
+              })
+            );
+            return;
+          }
+
+          if (message.type === "call_service") {
             queueMicrotask(() =>
               this.sendFromServer({
                 id: message.id,
@@ -255,6 +303,25 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
               })
             );
           }
+        }
+
+        emitEvent(eventType: string, data: unknown): boolean {
+          for (const [id, subscribedEvent] of this.subscriptions) {
+            if (subscribedEvent !== eventType) continue;
+            this.sendFromServer({
+              id,
+              type: "event",
+              event: {
+                event_type: eventType,
+                data,
+                origin: "LOCAL",
+                time_fired: new Date().toISOString(),
+                context: { id: "mock-camera-event", parent_id: null, user_id: null },
+              },
+            });
+            return true;
+          }
+          return false;
         }
 
         close(code = 1000, reason = "") {
@@ -283,11 +350,31 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
       browserWindow.__haMock = {
         disconnect() {
           online = false;
-          for (const socket of [...sockets]) socket.disconnectFromServer();
+          for (const socket of [...sockets]) {
+            if (socket.isHomeAssistant) socket.disconnectFromServer();
+          }
         },
         reconnect() {
           online = true;
-          for (const socket of [...sockets]) socket.reconnectFromServer();
+          for (const socket of [...sockets]) {
+            if (socket.isHomeAssistant) socket.reconnectFromServer();
+          }
+        },
+        emitEvent(eventType, data) {
+          let delivered = 0;
+          for (const socket of sockets) {
+            if (socket.emitEvent(eventType, data)) delivered += 1;
+          }
+          return delivered;
+        },
+        subscriberCount(eventType) {
+          let count = 0;
+          for (const socket of sockets) {
+            for (const subscribedEvent of socket.subscriptions.values()) {
+              if (subscribedEvent === eventType) count += 1;
+            }
+          }
+          return count;
         },
       };
 
@@ -307,6 +394,14 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
           { state: "21.5", last_changed: "2026-09-04T16:00:00Z" },
         ],
       ]),
+    });
+  });
+
+  await page.route("https://go2rtc.test/api/stream.mjpeg**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"><rect width="16" height="9" fill="black"/></svg>',
     });
   });
 }

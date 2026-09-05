@@ -10,7 +10,7 @@ interface Props {
   mode: StreamMode;
 }
 
-type VideoState = "connecting" | "playing" | "fallback";
+type VideoState = "connecting" | "playing" | "fallback" | "error";
 
 export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -23,7 +23,19 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
     if (!video || !go2rtcUrl || !streamName) return;
 
     let cancelled = false;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let removeConnectionListener: (() => void) | null = null;
     setVideoState("connecting");
+
+    function showFallback() {
+      if (cancelled) return;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      removeConnectionListener?.();
+      removeConnectionListener = null;
+      rtcRef.current?.stop();
+      rtcRef.current = null;
+      setVideoState("fallback");
+    }
 
     async function start() {
       try {
@@ -32,23 +44,31 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
           if (cancelled) { session.stop(); return; }
           rtcRef.current = session;
 
-          // Fall back to MJPEG if not connected within 3 s
-          const failTimer = setTimeout(() => {
-            if (session.pc.connectionState !== "connected" && !cancelled) {
-              setVideoState("fallback");
-            }
-          }, 3000);
-
-          session.pc.addEventListener("connectionstatechange", () => {
+          const onConnectionState = () => {
             if (cancelled) return;
             if (session.pc.connectionState === "connected") {
-              clearTimeout(failTimer);
+              if (fallbackTimer) clearTimeout(fallbackTimer);
               setVideoState("playing");
-            } else if (session.pc.connectionState === "failed") {
-              clearTimeout(failTimer);
-              setVideoState("fallback");
+            } else if (
+              session.pc.connectionState === "failed" ||
+              session.pc.connectionState === "closed"
+            ) {
+              showFallback();
+            } else if (session.pc.connectionState === "disconnected") {
+              if (fallbackTimer) clearTimeout(fallbackTimer);
+              fallbackTimer = setTimeout(showFallback, 3000);
             }
-          });
+          };
+
+          session.pc.addEventListener("connectionstatechange", onConnectionState);
+          removeConnectionListener = () =>
+            session.pc.removeEventListener("connectionstatechange", onConnectionState);
+
+          if (session.pc.connectionState === "connected") {
+            setVideoState("playing");
+          } else {
+            fallbackTimer = setTimeout(showFallback, 3000);
+          }
         } else {
           const ws = await startMSEStream(go2rtcUrl, streamName, video!);
           if (cancelled) { stopMSEStream(ws, video!); return; }
@@ -56,7 +76,7 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
           setVideoState("playing");
         }
       } catch {
-        if (!cancelled) setVideoState("fallback");
+        showFallback();
       }
     }
 
@@ -64,12 +84,18 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
 
     return () => {
       cancelled = true;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      removeConnectionListener?.();
       if (rtcRef.current) { rtcRef.current.stop(); rtcRef.current = null; }
       if (wsRef.current) { stopMSEStream(wsRef.current, video); wsRef.current = null; }
     };
   }, [go2rtcUrl, streamName, mode]);
 
-  const mjpegSrc = `${go2rtcUrl}/api/stream.mjpeg?src=${encodeURIComponent(streamName)}`;
+  const mjpegSrc = `${go2rtcUrl.replace(/\/$/, "")}/api/stream.mjpeg?src=${encodeURIComponent(streamName)}`;
+
+  function handleVideoError() {
+    setVideoState((state) => state === "fallback" ? "error" : "fallback");
+  }
 
   return (
     <>
@@ -78,14 +104,29 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
         autoPlay
         playsInline
         muted
-        className={`w-full h-full object-contain ${videoState === "fallback" ? "hidden" : ""}`}
+        onPlaying={() => setVideoState("playing")}
+        onError={handleVideoError}
+        className={`w-full h-full object-contain ${
+          videoState === "fallback" || videoState === "error" ? "hidden" : ""
+        }`}
       />
+      {videoState === "connecting" && (
+        <p role="status" className="absolute text-sm text-white/50">
+          Connecting to camera
+        </p>
+      )}
       {videoState === "fallback" && (
         <img
           src={mjpegSrc}
           alt={streamName}
-          className="w-full h-full object-contain"
+          onError={() => setVideoState("error")}
+          className="absolute inset-0 w-full h-full object-contain"
         />
+      )}
+      {videoState === "error" && (
+        <p role="alert" className="absolute text-sm text-white/60">
+          Camera stream unavailable
+        </p>
       )}
     </>
   );
