@@ -79,7 +79,6 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
   await expect(fanSpeed).toBeEnabled();
   await expect(page.getByRole("button", { name: "Day" })).toBeEnabled();
 
-  await page.getByRole("button", { name: "Back to front" }).click();
   await page.getByText("Test Light", { exact: true }).click();
 
   await expect
