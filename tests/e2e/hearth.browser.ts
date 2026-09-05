@@ -17,6 +17,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await expect(page.locator('[title="connected"]')).toBeVisible();
   await expect(page.getByText("Test Light", { exact: true })).toBeVisible();
+  await page.waitForTimeout(600);
 });
 
 test("controls call Home Assistant services", async ({ page }) => {
@@ -97,7 +98,7 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
 });
 
 test("lazy routes, dialogs, and sensor history load", async ({ page }) => {
-  await page.getByText("Test Temperature", { exact: true }).click();
+  await page.getByText("Test Temperature", { exact: true }).first().click();
   await expect(page.locator(".recharts-responsive-container")).toBeVisible();
 
   await page.getByRole("button", { name: "Settings" }).click();
