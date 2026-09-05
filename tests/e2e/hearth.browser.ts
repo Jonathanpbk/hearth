@@ -12,12 +12,14 @@ interface TestWindow extends Window {
   };
 }
 
+const INTERACTION_GUARD_SETTLE_MS = 600;
+
 test.beforeEach(async ({ page }) => {
   await installHearthTestHarness(page);
   await page.goto("/");
   await expect(page.locator('[title="connected"]')).toBeVisible();
   await expect(page.getByText("Test Light", { exact: true })).toBeVisible();
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(INTERACTION_GUARD_SETTLE_MS);
 });
 
 test("controls call Home Assistant services", async ({ page }) => {
@@ -54,6 +56,7 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
 
   const brightness = page.getByRole("slider", { name: "Brightness" });
   const fanSpeed = page.locator('input[type="range"][min="1"][max="9"]');
+  await expect(brightness).toBeVisible();
   const brightnessBefore = await brightness.inputValue();
   const fanSpeedBefore = await fanSpeed.inputValue();
 
@@ -79,7 +82,8 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
   await expect(fanSpeed).toBeEnabled();
   await expect(page.getByRole("button", { name: "Day" })).toBeEnabled();
 
-  await page.getByText("Test Light", { exact: true }).click();
+  await page.waitForTimeout(INTERACTION_GUARD_SETTLE_MS);
+  await page.getByRole("button", { name: "Day" }).click();
 
   await expect
     .poll(() =>
@@ -88,8 +92,9 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
         return testWindow.__haMessages.some(
           (message) =>
             message.type === "call_service" &&
-            message.domain === "light" &&
-            message.service === "toggle"
+            message.domain === "script" &&
+            message.service === "turn_on" &&
+            message.target?.entity_id === "script.day_lights"
         );
       })
     )
