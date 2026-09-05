@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { lazy, Suspense, useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./store/useSettingsStore";
@@ -9,8 +9,13 @@ import { useCameraEvent } from "./hooks/useCameraEvent";
 import { CameraOverlay } from "./components/camera/CameraOverlay";
 import { DimOverlay } from "./components/DimOverlay";
 import { ServiceErrorToast } from "./components/ServiceErrorToast";
-import { DashboardView } from "./views/DashboardView";
-import { SettingsView } from "./views/SettingsView";
+
+const DashboardView = lazy(() =>
+  import("./views/DashboardView").then((module) => ({ default: module.DashboardView }))
+);
+const SettingsView = lazy(() =>
+  import("./views/SettingsView").then((module) => ({ default: module.SettingsView }))
+);
 
 function HAConnectionManager() {
   const haUrl = useSettingsStore((s) => s.settings.haUrl);
@@ -119,18 +124,20 @@ export default function App() {
       <WakeLockManager />
       <CameraEventManager />
       <DimManager />
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <RequireConfig>
-              <DashboardView />
-            </RequireConfig>
-          }
-        />
-        <Route path="/settings" element={<SettingsView />} />
-<Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <RequireConfig>
+                <DashboardView />
+              </RequireConfig>
+            }
+          />
+          <Route path="/settings" element={<SettingsView />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
       <DimOverlay />
       <CameraOverlay />
       <ServiceErrorToast />

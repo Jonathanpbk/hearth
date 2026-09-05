@@ -1,13 +1,22 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { DashboardGrid } from "../components/dashboard/DashboardGrid";
-import { AddCardModal } from "../components/dashboard/AddCardModal";
-import { EditCardModal } from "../components/dashboard/EditCardModal";
 import { PageDock } from "../components/dashboard/PageDock";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useDashboardStore } from "../store/useDashboardStore";
 import type { CardConfig } from "../types/dashboard";
+
+const AddCardModal = lazy(() =>
+  import("../components/dashboard/AddCardModal").then((module) => ({
+    default: module.AddCardModal,
+  }))
+);
+const EditCardModal = lazy(() =>
+  import("../components/dashboard/EditCardModal").then((module) => ({
+    default: module.EditCardModal,
+  }))
+);
 
 export function DashboardView() {
   const pages = useSettingsStore((s) => s.settings.pages);
@@ -67,20 +76,22 @@ export function DashboardView() {
         <PageDock />
       </div>
 
-      {addCardOpen && currentPage && (
-        <AddCardModal
-          pageId={currentPage.id}
-          currentLayout={currentPage.layout}
-          onClose={() => setAddCardOpen(false)}
-        />
-      )}
-      {editingCard && currentPage && (
-        <EditCardModal
-          card={editingCard}
-          pageId={currentPage.id}
-          onClose={() => setEditingCard(null)}
-        />
-      )}
+      <Suspense fallback={null}>
+        {addCardOpen && currentPage && (
+          <AddCardModal
+            pageId={currentPage.id}
+            currentLayout={currentPage.layout}
+            onClose={() => setAddCardOpen(false)}
+          />
+        )}
+        {editingCard && currentPage && (
+          <EditCardModal
+            card={editingCard}
+            pageId={currentPage.id}
+            onClose={() => setEditingCard(null)}
+          />
+        )}
+      </Suspense>
     </DashboardLayout>
   );
 }
