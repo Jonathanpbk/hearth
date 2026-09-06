@@ -6,6 +6,7 @@ import type { Settings } from "../../types/settings";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { CameraSettings } from "./CameraSettings";
 import { DisplaySettings } from "./DisplaySettings";
+import { PWAUpdateSettings } from "./PWAUpdateSettings";
 
 const STORAGE_KEY = "hearth-settings";
 
@@ -117,6 +118,8 @@ export function SettingsPage() {
         >
           Save
         </button>
+
+        <PWAUpdateSettings onBeforeUpdate={() => setSettings(form)} />
 
         {/* Export / Import */}
         <div className="pt-4 border-t border-white/[0.06]">

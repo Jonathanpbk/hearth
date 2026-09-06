@@ -148,12 +148,19 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
   await page.evaluate(() => localStorage.setItem("e2e-preserved", "yes"));
   await page.goto("/api/pwa-update.html");
 
-  await expect(page.getByRole("heading", { name: "Updating Hearth" })).toBeVisible();
   await page.waitForURL(/\/\?pwa-updated=\d+$/, { timeout: 5_000 });
   await expect(page.getByText("Test Light", { exact: true })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("e2e-preserved")))
     .toBe("yes");
+});
+
+test("settings reports the installed PWA build", async ({ page }) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Check for updates" }).click();
+
+  await expect(page.getByRole("status")).toHaveText("Hearth is up to date.");
+  await expect(page.getByText("Unknown", { exact: true })).toHaveCount(0);
 });
 
 test("camera events validate payloads and reset the overlay timer", async ({ page }) => {

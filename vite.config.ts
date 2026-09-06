@@ -1,10 +1,42 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+
+function hearthVersionPlugin(): Plugin {
+  return {
+    name: "hearth-version",
+    configureServer(server) {
+      server.middlewares.use("/api/version.json", (_request, response) => {
+        response.setHeader("Content-Type", "application/json");
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify({ version: "development" }));
+      });
+    },
+    generateBundle(_options, bundle) {
+      const outputs = Object.values(bundle);
+      const entry = outputs.find(
+        (output) =>
+          output.type === "chunk" &&
+          output.isEntry &&
+          output.facadeModuleId?.endsWith("/src/main.tsx")
+      ) ?? outputs.find(
+        (output) => output.type === "chunk" && output.isEntry
+      );
+      if (!entry) this.error("Hearth entry bundle was not generated");
+
+      this.emitFile({
+        type: "asset",
+        fileName: "api/version.json",
+        source: JSON.stringify({ version: entry.fileName }),
+      });
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
     react(),
+    hearthVersionPlugin(),
     VitePWA({
       injectRegister: false,
       registerType: "autoUpdate",

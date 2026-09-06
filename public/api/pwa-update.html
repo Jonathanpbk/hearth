@@ -56,19 +56,24 @@
       }
 
       async function updateHearth() {
-        if (!("serviceWorker" in navigator)) {
-          returnToHearth();
-          return;
-        }
-
-        navigator.serviceWorker.addEventListener("controllerchange", returnToHearth);
-
         try {
-          const registration = await navigator.serviceWorker.getRegistration("/");
-          if (registration) await registration.update();
-          window.setTimeout(returnToHearth, 2000);
+          status.textContent = "Replacing the cached dashboard files.";
+
+          if ("serviceWorker" in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(
+              registrations.map((registration) => registration.unregister())
+            );
+          }
+
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+          }
+
+          returnToHearth();
         } catch (error) {
-          status.textContent = "The update check failed. Reopen this page while connected.";
+          status.textContent = "The update failed. Reopen this page while connected.";
           console.error("Failed to refresh Hearth", error);
         }
       }
