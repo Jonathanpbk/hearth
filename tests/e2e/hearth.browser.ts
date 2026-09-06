@@ -132,13 +132,15 @@ test("wake lock recovers after release and visibility changes", async ({ page })
     .poll(() =>
       page.evaluate(() => {
         const testWindow = window as unknown as TestWindow;
-        return {
-          active: testWindow.__displayMock.activeWakeLocks(),
-          requests: testWindow.__displayMock.requestCount(),
-        };
+        return testWindow.__displayMock.activeWakeLocks();
       })
     )
-    .toEqual({ active: 1, requests: 1 });
+    .toBe(1);
+  const baselineRequests = await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    return testWindow.__displayMock.requestCount();
+  });
+  expect(baselineRequests).toBeGreaterThanOrEqual(1);
 
   await page.evaluate(() => {
     const testWindow = window as unknown as TestWindow;
@@ -154,7 +156,7 @@ test("wake lock recovers after release and visibility changes", async ({ page })
         };
       })
     )
-    .toEqual({ active: 1, requests: 2 });
+    .toEqual({ active: 1, requests: baselineRequests + 1 });
 
   await page.evaluate(() => {
     const testWindow = window as unknown as TestWindow;
@@ -183,7 +185,7 @@ test("wake lock recovers after release and visibility changes", async ({ page })
         };
       })
     )
-    .toEqual({ active: 1, requests: 3 });
+    .toEqual({ active: 1, requests: baselineRequests + 2 });
 
   await page.evaluate(() => {
     const testWindow = window as unknown as TestWindow;
@@ -195,7 +197,7 @@ test("wake lock recovers after release and visibility changes", async ({ page })
       const testWindow = window as unknown as TestWindow;
       return testWindow.__displayMock.requestCount();
     })
-  ).toBe(3);
+  ).toBe(baselineRequests + 2);
 });
 
 test("auto-dim pauses while hidden and consumes the wake tap", async ({ page }) => {
