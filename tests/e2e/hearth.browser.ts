@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  type DisplayMock,
   installHearthTestHarness,
   type MockMessage,
 } from "./ha-mock";
 
 interface TestWindow extends Window {
+  __displayMock: DisplayMock;
   __haMessages: MockMessage[];
   __haMock: {
     disconnect: () => void;
@@ -119,6 +121,147 @@ test("offline controls stay locked until reconnection", async ({ page }) => {
             message.domain === "script" &&
             message.service === "turn_on" &&
             message.target?.entity_id === "script.day_lights"
+        );
+      })
+    )
+    .toBe(true);
+});
+
+test("wake lock recovers after release and visibility changes", async ({ page }) => {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__displayMock.activeWakeLocks();
+      })
+    )
+    .toBe(1);
+  const baselineRequests = await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    return testWindow.__displayMock.requestCount();
+  });
+  expect(baselineRequests).toBeGreaterThanOrEqual(1);
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__displayMock.releaseWakeLock();
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return {
+          active: testWindow.__displayMock.activeWakeLocks(),
+          requests: testWindow.__displayMock.requestCount(),
+        };
+      })
+    )
+    .toEqual({ active: 1, requests: baselineRequests + 1 });
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__displayMock.setVisibility("hidden");
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__displayMock.activeWakeLocks();
+      })
+    )
+    .toBe(0);
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__displayMock.setVisibility("visible");
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return {
+          active: testWindow.__displayMock.activeWakeLocks(),
+          requests: testWindow.__displayMock.requestCount(),
+        };
+      })
+    )
+    .toEqual({ active: 1, requests: baselineRequests + 2 });
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__displayMock.setVisibility("visible");
+  });
+  await page.waitForTimeout(100);
+  expect(
+    await page.evaluate(() => {
+      const testWindow = window as unknown as TestWindow;
+      return testWindow.__displayMock.requestCount();
+    })
+  ).toBe(baselineRequests + 2);
+});
+
+test("auto-dim pauses while hidden and consumes the wake tap", async ({ page }) => {
+  await page.clock.install();
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("switch", { name: "Auto-dim" }).click();
+  await page.getByLabel("Dim after seconds").fill("10");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__displayMock.setVisibility("hidden");
+  });
+  await page.clock.fastForward(20_000);
+  await expect(page.locator("[data-display-dimmer]")).toHaveAttribute(
+    "data-active",
+    "false"
+  );
+
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__displayMock.setVisibility("visible");
+  });
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-display-guard",
+    "true"
+  );
+  await page.clock.fastForward(10_100);
+  await expect(page.locator("[data-display-dimmer]")).toHaveAttribute(
+    "data-active",
+    "true"
+  );
+
+  const light = page.getByText("Test Light", { exact: true });
+  const box = await light.boundingBox();
+  if (!box) throw new Error("Test Light has no bounding box");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+  await expect(page.locator("[data-display-dimmer]")).toHaveAttribute(
+    "data-active",
+    "false"
+  );
+  expect(
+    await page.evaluate(() => {
+      const testWindow = window as unknown as TestWindow;
+      return testWindow.__haMessages.filter(
+        (message) => message.type === "call_service"
+      ).length;
+    })
+  ).toBe(0);
+
+  await page.clock.fastForward(700);
+  await light.click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__haMessages.some(
+          (message) =>
+            message.type === "call_service" &&
+            message.domain === "light" &&
+            message.target?.entity_id === "light.test_light"
         );
       })
     )

@@ -1,6 +1,5 @@
 import { useDimStore } from "../store/useDimStore";
-
-const GUARD_MS = 500;
+import { DISPLAY_INTERACTION_GUARD_MS } from "../lib/display-lifecycle";
 
 /**
  * Returns a stable isGuarded() function that returns true if the screen
@@ -10,5 +9,7 @@ const GUARD_MS = 500;
 export function useUndimGuard(): () => boolean {
   // Subscribe to nothing — read on demand via getState() in the returned fn.
   void useDimStore; // keep the import alive without subscribing
-  return () => Date.now() - useDimStore.getState().lastUndimTime < GUARD_MS;
+  return () =>
+    Date.now() - useDimStore.getState().lastUndimTime <
+    DISPLAY_INTERACTION_GUARD_MS;
 }
