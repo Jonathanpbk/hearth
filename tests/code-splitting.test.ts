@@ -15,6 +15,15 @@ describe("startup code splitting", () => {
     expect(app).not.toContain('import { SettingsView } from "./views/SettingsView"');
   });
 
+  it("shows loading and recovery UI for lazy route failures", () => {
+    const app = source("src/App.tsx");
+    const main = source("src/main.tsx");
+
+    expect(app).toContain("<Suspense fallback={<RuntimeLoading />}>");
+    expect(main).toContain("<AppErrorBoundary>");
+    expect(main).toContain("</AppErrorBoundary>");
+  });
+
   it("keeps edit modals out of the dashboard startup path", () => {
     const dashboard = source("src/views/DashboardView.tsx");
 
