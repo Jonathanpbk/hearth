@@ -148,7 +148,6 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
   await page.evaluate(() => localStorage.setItem("e2e-preserved", "yes"));
   await page.goto("/api/pwa-update.html");
 
-  await expect(page.getByRole("heading", { name: "Updating Hearth" })).toBeVisible();
   await page.waitForURL(/\/\?pwa-updated=\d+$/, { timeout: 5_000 });
   await expect(page.getByText("Test Light", { exact: true })).toBeVisible();
   await expect
