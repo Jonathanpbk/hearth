@@ -17,6 +17,8 @@ export function DimOverlay() {
 
   return (
     <div
+      data-display-dimmer
+      data-active={active ? "true" : "false"}
       className={`fixed inset-0 z-[9998] bg-black transition-opacity duration-500 ${
         active ? "opacity-85 pointer-events-auto" : "opacity-0 pointer-events-none"
       }`}

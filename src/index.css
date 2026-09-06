@@ -63,10 +63,11 @@ input[type="range"]:disabled {
   cursor: default;
 }
 
-/* ── Auto-dim card blocking ─────────────────────────────────────── */
-/* While dimmed (or within 300ms of undimming), block all touch/pointer
-   events on dashboard cards so the wakeup touch never triggers a card. */
-body[data-dim="true"] .react-grid-layout {
+/* ── Display wake interaction blocking ─────────────────────────── */
+/* Keep the wakeup touch away from every app control while dimmed and
+   briefly after Hearth returns to the foreground. */
+body[data-display-guard="true"] [data-app-content],
+body[data-display-guard="true"] [data-app-content] * {
   pointer-events: none !important;
 }
 

@@ -16,6 +16,13 @@ export interface MockMessage {
   subscription?: number;
 }
 
+export interface DisplayMock {
+  activeWakeLocks: () => number;
+  releaseWakeLock: () => void;
+  requestCount: () => number;
+  setVisibility: (state: "hidden" | "visible") => void;
+}
+
 export const mockEntities: Record<string, MockEntity> = {
   "light.test_light": {
     state: "on",
@@ -117,7 +124,7 @@ export const persistedSettings = {
       go2rtcUrl: "https://go2rtc.test",
       cameraEventName: "pwa_camera_trigger",
       cameraDefaultDuration: 10000,
-      wakeLockEnabled: false,
+      wakeLockEnabled: true,
       clockFormat: "24h",
       showDock: true,
       autoDim: false,
@@ -153,6 +160,7 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
 
       const browserWindow = window as unknown as {
         __haMessages: MockMessage[];
+        __displayMock: DisplayMock;
         __haMock: {
           disconnect: () => void;
           reconnect: () => void;
@@ -161,6 +169,54 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
         };
       };
       browserWindow.__haMessages = [];
+
+      let visibilityState: DocumentVisibilityState = "visible";
+      let wakeLockRequests = 0;
+      const wakeLocks = new Set<FakeWakeLockSentinel>();
+
+      class FakeWakeLockSentinel extends EventTarget {
+        released = false;
+        readonly type = "screen";
+
+        async release() {
+          this.releaseFromSystem();
+        }
+
+        releaseFromSystem() {
+          if (this.released) return;
+          this.released = true;
+          wakeLocks.delete(this);
+          this.dispatchEvent(new Event("release"));
+        }
+      }
+
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => visibilityState,
+      });
+      Object.defineProperty(navigator, "wakeLock", {
+        configurable: true,
+        value: {
+          async request() {
+            wakeLockRequests += 1;
+            const sentinel = new FakeWakeLockSentinel();
+            wakeLocks.add(sentinel);
+            return sentinel as unknown as WakeLockSentinel;
+          },
+        },
+      });
+
+      browserWindow.__displayMock = {
+        activeWakeLocks: () => wakeLocks.size,
+        releaseWakeLock() {
+          [...wakeLocks][0]?.releaseFromSystem();
+        },
+        requestCount: () => wakeLockRequests,
+        setVisibility(state) {
+          visibilityState = state;
+          document.dispatchEvent(new Event("visibilitychange"));
+        },
+      };
 
       let online = true;
       const sockets = new Set<FakeWebSocket>();
