@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type React from "react";
-import { GridLayout, useContainerWidth, noCompactor } from "react-grid-layout";
+import { GridLayout, getCompactor, useContainerWidth } from "react-grid-layout";
 import type { Layout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import { CardWrapper } from "./CardWrapper";
@@ -14,12 +14,13 @@ import { ClockWeatherCard } from "../widgets/ClockWeatherCard";
 import { DreoFanCard } from "../widgets/DreoFanCard";
 import { ScenesCard } from "../widgets/ScenesCard";
 import type { CardConfig, StoredLayoutItem } from "../../types/dashboard";
+import { DASHBOARD_GRID_COLUMNS } from "../../lib/dashboard-edit";
 
 // ── Row-height calculation ────────────────────────────────────────────────────
 // Target: 10 rows fill the visible content area (viewport minus header and dock).
 
-const GRID_COLS = 16;
 const GRID_ROWS = 10;
+const fixedPositionCompactor = getCompactor(null, false, true);
 const HEADER_H = 56;   // h-14
 const DOCK_SAFE = 60;  // dock pill (~40 px) + bottom-4 margin
 const PAD_Y = 32;      // containerPadding top + bottom (16 + 16)
@@ -113,7 +114,7 @@ export function DashboardGrid({
   // All other properties are stable constants so no additional re-renders occur.
   const gridConfig = useMemo(
     () => ({
-      cols: GRID_COLS,
+      cols: DASHBOARD_GRID_COLUMNS,
       rowHeight,
       margin: [8, 8] as const,
       containerPadding: [16, 16] as const,
@@ -173,7 +174,7 @@ export function DashboardGrid({
         gridConfig={gridConfig}
         dragConfig={dragConfig}
         resizeConfig={resizeConfig}
-        compactor={noCompactor}
+        compactor={fixedPositionCompactor}
         onLayoutChange={handleLayoutChange}
         onDragStart={handleDragStart}
         onDragStop={handleDragStop}

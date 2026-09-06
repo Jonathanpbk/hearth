@@ -1,11 +1,21 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { defaultSettings, type Settings } from "../types/settings";
-import type { CardConfig, Page, StoredLayoutItem } from "../types/dashboard";
+import type { CardConfig, StoredLayoutItem } from "../types/dashboard";
 import {
   mergePersistedSettings,
   type PersistedSettings,
 } from "../lib/settings-migration";
+import {
+  addDraftCard,
+  addDraftPage,
+  deleteDraftCard,
+  deleteDraftPage,
+  reorderDraftPages,
+  updateDraftCard,
+  updateDraftLayout,
+  updateDraftPageMeta,
+} from "../lib/dashboard-edit";
 
 interface SettingsStore {
   settings: Settings;
@@ -30,17 +40,14 @@ export const useSettingsStore = create<SettingsStore>()(
 
       addPage: (name, id) =>
         set((state) => {
-          const newPage: Page = {
-            id: id ?? crypto.randomUUID(),
-            name,
-            icon: "LayoutDashboard",
-            cards: [],
-            layout: [],
-          };
           return {
             settings: {
               ...state.settings,
-              pages: [...state.settings.pages, newPage],
+              pages: addDraftPage(
+                state.settings.pages,
+                name,
+                id ?? crypto.randomUUID()
+              ),
             },
           };
         }),
@@ -49,7 +56,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.filter((p) => p.id !== id),
+            pages: deleteDraftPage(state.settings.pages, id),
           },
         })),
 
@@ -57,9 +64,14 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.map((p) =>
-              p.id === id ? { ...p, name } : p
-            ),
+            pages: state.settings.pages.some((page) => page.id === id)
+              ? updateDraftPageMeta(
+                  state.settings.pages,
+                  id,
+                  name,
+                  state.settings.pages.find((page) => page.id === id)!.icon
+                )
+              : state.settings.pages,
           },
         })),
 
@@ -67,22 +79,16 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.map((p) =>
-              p.id === id ? { ...p, name, icon } : p
-            ),
+            pages: updateDraftPageMeta(state.settings.pages, id, name, icon),
           },
         })),
 
       reorderPages: (orderedIds) =>
         set((state) => {
-          const pageMap = new Map(state.settings.pages.map((p) => [p.id, p]));
           return {
             settings: {
               ...state.settings,
-              pages: orderedIds.flatMap((id) => {
-                const p = pageMap.get(id);
-                return p ? [p] : [];
-              }),
+              pages: reorderDraftPages(state.settings.pages, orderedIds),
             },
           };
         }),
@@ -91,11 +97,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.map((p) =>
-              p.id === pageId
-                ? { ...p, cards: [...p.cards, card], layout: [...p.layout, layout] }
-                : p
-            ),
+            pages: addDraftCard(state.settings.pages, pageId, card, layout),
           },
         })),
 
@@ -103,15 +105,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.map((p) =>
-              p.id === pageId
-                ? {
-                    ...p,
-                    cards: p.cards.filter((c) => c.id !== cardId),
-                    layout: p.layout.filter((l) => l.i !== cardId),
-                  }
-                : p
-            ),
+            pages: deleteDraftCard(state.settings.pages, pageId, cardId).pages,
           },
         })),
 
@@ -119,11 +113,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.map((p) =>
-              p.id === pageId
-                ? { ...p, cards: p.cards.map((c) => (c.id === card.id ? card : c)) }
-                : p
-            ),
+            pages: updateDraftCard(state.settings.pages, pageId, card),
           },
         })),
 
@@ -131,9 +121,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            pages: state.settings.pages.map((p) =>
-              p.id === pageId ? { ...p, layout } : p
-            ),
+            pages: updateDraftLayout(state.settings.pages, pageId, layout),
           },
         })),
     }),

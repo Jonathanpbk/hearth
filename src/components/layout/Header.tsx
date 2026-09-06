@@ -1,4 +1,4 @@
-import { Settings, Download, Pencil, Check, Megaphone } from "lucide-react";
+import { Settings, Download, Pencil, Check, Megaphone, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ConnectionStatus } from "./ConnectionStatus";
@@ -9,6 +9,8 @@ import { callService } from "../../lib/ha-service";
 import { useEntityStore } from "../../store/useEntityStore";
 import { getEntityBlockReason } from "../../lib/entity-state";
 import { executeServiceAction } from "../../lib/service-action";
+import { useSettingsStore } from "../../store/useSettingsStore";
+import { clonePages } from "../../lib/dashboard-edit";
 
 const QUICK_ACTIONS = [
   { label: "Stop dogs!", entityId: "script.dogstop" },
@@ -19,7 +21,12 @@ export function Header() {
   const navigate = useNavigate();
   const { canInstall, install } = useInstallPrompt();
   const editMode = useDashboardStore((s) => s.editMode);
-  const setEditMode = useDashboardStore((s) => s.setEditMode);
+  const draftPages = useDashboardStore((s) => s.draftPages);
+  const beginEdit = useDashboardStore((s) => s.beginEdit);
+  const discardEdit = useDashboardStore((s) => s.discardEdit);
+  const completeEdit = useDashboardStore((s) => s.completeEdit);
+  const settings = useSettingsStore((s) => s.settings);
+  const setSettings = useSettingsStore((s) => s.setSettings);
   const entities = useEntityStore((s) => s.entities);
   const connectionStatus = useEntityStore((s) => s.connectionStatus);
 
@@ -42,6 +49,12 @@ export function Header() {
       callService(getConnection(), "script", "turn_on", { entity_id: entityId })
     );
     setMenuOpen(false);
+  }
+
+  function saveDashboardChanges() {
+    if (!draftPages) return;
+    setSettings({ ...settings, pages: clonePages(draftPages) });
+    completeEdit();
   }
 
   return (
@@ -91,22 +104,36 @@ export function Header() {
 
         <ConnectionStatus />
 
-        {/* Edit mode toggle */}
-        <button
-          onClick={() => setEditMode(!editMode)}
-          className={`p-1.5 rounded-lg transition-colors ${
-            editMode
-              ? "bg-[#ffc174]/15 text-[#ffc174] hover:bg-[#ffc174]/25"
-              : "text-white/40 hover:text-white/70 hover:bg-white/[0.06]"
-          }`}
-          aria-label={editMode ? "Exit edit mode" : "Edit dashboard"}
-        >
-          {editMode ? (
-            <Check className="h-4 w-4" />
-          ) : (
+        {/* Dashboard edit controls */}
+        {editMode ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={discardEdit}
+              className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+              aria-label="Cancel dashboard changes"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={saveDashboardChanges}
+              className="p-1.5 rounded-lg bg-[#ffc174]/15 text-[#ffc174] hover:bg-[#ffc174]/25 transition-colors"
+              aria-label="Save dashboard changes"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => beginEdit(settings.pages)}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+            aria-label="Edit dashboard"
+          >
             <Pencil className="h-4 w-4" />
-          )}
-        </button>
+          </button>
+        )}
 
         {canInstall && (
           <button
@@ -119,8 +146,10 @@ export function Header() {
         )}
 
         <button
+          type="button"
           onClick={() => navigate("/settings")}
-          className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+          disabled={editMode}
+          className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors disabled:cursor-not-allowed disabled:opacity-30 disabled:pointer-events-none"
           aria-label="Settings"
         >
           <Settings className="h-4 w-4" />

@@ -46,4 +46,12 @@ describe("startup code splitting", () => {
     expect(sensorCard).not.toContain('from "recharts"');
     expect(sensorChart).toContain('from "recharts"');
   });
+
+  it("blocks grid collisions without compacting placed cards", () => {
+    const dashboardGrid = source("src/components/dashboard/DashboardGrid.tsx");
+
+    expect(dashboardGrid).toContain("getCompactor(null, false, true)");
+    expect(dashboardGrid).toContain("compactor={fixedPositionCompactor}");
+    expect(dashboardGrid).not.toContain("allowOverlap");
+  });
 });

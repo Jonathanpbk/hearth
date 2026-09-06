@@ -3,7 +3,7 @@ import { Sun, ToggleLeft, Sunset, Play, Activity, Cloud, Clock, Wind, Sparkles }
 import type { LucideIcon } from "lucide-react";
 import { Modal } from "./Modal";
 import { useEntityStore } from "../../store/useEntityStore";
-import { useSettingsStore } from "../../store/useSettingsStore";
+import { useDashboardStore } from "../../store/useDashboardStore";
 import { CARD_DEFAULTS, CARD_DOMAIN, nextRowY, type CardType } from "../../types/dashboard";
 
 const CARD_TYPE_META: { type: CardType; label: string; Icon: LucideIcon; description: string }[] = [
@@ -32,7 +32,7 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
   const [search, setSearch] = useState("");
 
   const entities = useEntityStore((s) => s.entities);
-  const addCard = useSettingsStore((s) => s.addCard);
+  const addCard = useDashboardStore((s) => s.addCard);
 
   function handleAdd(type: CardType, entityId: string) {
     const defaults = CARD_DEFAULTS[type];
