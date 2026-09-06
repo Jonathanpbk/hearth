@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
-import { CONNECTION_TEST_TIMEOUT_MS } from "../../config/defaults";
+import { verifyHomeAssistantConnection } from "../../lib/ha-connection-test";
+import type { SettingsErrors } from "../../lib/settings-validation";
 
 type TestState = "idle" | "loading" | "ok" | "error";
 
@@ -8,6 +9,7 @@ interface Props {
   haUrl: string;
   haToken: string;
   weatherEntityId: string;
+  errors: SettingsErrors;
   onUrlChange: (v: string) => void;
   onTokenChange: (v: string) => void;
   onWeatherEntityChange: (v: string) => void;
@@ -24,7 +26,7 @@ function TestIcon({ state }: { state: TestState }) {
 }
 
 const inputClass =
-  "flex-1 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 transition-colors min-w-0";
+  "flex-1 bg-[#1a1a1a] border border-white/10 aria-[invalid=true]:border-red-500/60 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 transition-colors min-w-0";
 const labelClass = "block text-xs uppercase tracking-widest text-white/40 mb-1.5";
 const testBtnClass =
   "px-3 py-2.5 text-xs uppercase tracking-widest text-white/50 border border-white/10 rounded-lg hover:border-white/20 hover:text-white/80 transition-colors disabled:opacity-40 shrink-0";
@@ -33,30 +35,32 @@ export function ConnectionSettings({
   haUrl,
   haToken,
   weatherEntityId,
+  errors,
   onUrlChange,
   onTokenChange,
   onWeatherEntityChange,
 }: Props) {
   const [urlTest, setUrlTest] = useState<TestState>("idle");
+  const [testMessage, setTestMessage] = useState("");
   const [showToken, setShowToken] = useState(false);
 
-  async function testUrl(url: string, setTest: (s: TestState) => void) {
-    if (!url) {
-      setTest("error");
-      return;
-    }
-    setTest("loading");
+  function resetTest() {
+    setUrlTest("idle");
+    setTestMessage("");
+  }
+
+  async function testUrl() {
+    setUrlTest("loading");
+    setTestMessage("Testing the Home Assistant connection.");
     try {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), CONNECTION_TEST_TIMEOUT_MS);
-      await fetch(`${url}/api/`, {
-        headers: haToken ? { Authorization: `Bearer ${haToken}` } : {},
-        signal: controller.signal,
-      });
-      clearTimeout(id);
-      setTest("ok");
-    } catch {
-      setTest("error");
+      await verifyHomeAssistantConnection(haUrl, haToken);
+      setUrlTest("ok");
+      setTestMessage("Connected to Home Assistant.");
+    } catch (error) {
+      setUrlTest("error");
+      setTestMessage(
+        error instanceof Error ? error.message : "The connection test failed."
+      );
     }
   }
 
@@ -65,21 +69,25 @@ export function ConnectionSettings({
       <h2 className={labelClass}>Connection</h2>
 
       <div>
-        <label className={labelClass}>Home Assistant URL</label>
+        <label htmlFor="ha-url" className={labelClass}>Home Assistant URL</label>
         <div className="flex items-center gap-2">
           <input
+            id="ha-url"
             type="url"
             value={haUrl}
             onChange={(e) => {
               onUrlChange(e.target.value);
-              setUrlTest("idle");
+              resetTest();
             }}
             placeholder="https://ha.yourdomain.com"
             className={inputClass}
+            aria-invalid={Boolean(errors.haUrl)}
+            aria-describedby={errors.haUrl ? "ha-url-error" : undefined}
             spellCheck={false}
           />
           <button
-            onClick={() => testUrl(haUrl, setUrlTest)}
+            type="button"
+            onClick={() => void testUrl()}
             disabled={urlTest === "loading"}
             className={testBtnClass}
           >
@@ -87,21 +95,33 @@ export function ConnectionSettings({
           </button>
           <TestIcon state={urlTest} />
         </div>
+        {errors.haUrl && (
+          <p id="ha-url-error" className="text-xs text-red-400 mt-1.5">
+            {errors.haUrl}
+          </p>
+        )}
       </div>
 
       <div>
-        <label className={labelClass}>Long-Lived Access Token</label>
+        <label htmlFor="ha-token" className={labelClass}>Long-Lived Access Token</label>
         <div className="flex items-center gap-2">
           <input
+            id="ha-token"
             type={showToken ? "text" : "password"}
             value={haToken}
-            onChange={(e) => onTokenChange(e.target.value)}
+            onChange={(e) => {
+              onTokenChange(e.target.value);
+              resetTest();
+            }}
             placeholder="eyJ..."
             className={inputClass}
+            aria-invalid={Boolean(errors.haToken)}
+            aria-describedby={errors.haToken ? "ha-token-error" : undefined}
             autoComplete="off"
             spellCheck={false}
           />
           <button
+            type="button"
             onClick={() => setShowToken((v) => !v)}
             className="px-3 py-2.5 border border-white/10 rounded-lg hover:border-white/20 transition-colors text-white/40 hover:text-white/70 shrink-0"
             aria-label={showToken ? "Hide token" : "Show token"}
@@ -113,19 +133,41 @@ export function ConnectionSettings({
             )}
           </button>
         </div>
+        {errors.haToken && (
+          <p id="ha-token-error" className="text-xs text-red-400 mt-1.5">
+            {errors.haToken}
+          </p>
+        )}
       </div>
 
       <div>
-        <label className={labelClass}>Weather Entity ID</label>
+        <label htmlFor="weather-entity" className={labelClass}>Weather Entity ID</label>
         <input
+          id="weather-entity"
           type="text"
           value={weatherEntityId}
           onChange={(e) => onWeatherEntityChange(e.target.value)}
           placeholder="weather.home"
-          className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 transition-colors"
+          className="w-full bg-[#1a1a1a] border border-white/10 aria-[invalid=true]:border-red-500/60 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 transition-colors"
+          aria-invalid={Boolean(errors.weatherEntityId)}
+          aria-describedby={errors.weatherEntityId ? "weather-entity-error" : undefined}
           spellCheck={false}
         />
+        {errors.weatherEntityId && (
+          <p id="weather-entity-error" className="text-xs text-red-400 mt-1.5">
+            {errors.weatherEntityId}
+          </p>
+        )}
       </div>
+
+      {testMessage && (
+        <p
+          role={urlTest === "error" ? "alert" : "status"}
+          className={`text-xs ${urlTest === "error" ? "text-red-400" : "text-white/50"}`}
+        >
+          {testMessage}
+        </p>
+      )}
     </div>
   );
 }

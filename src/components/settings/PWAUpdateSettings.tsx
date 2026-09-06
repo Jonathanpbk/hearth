@@ -15,7 +15,7 @@ type UpdateState =
   | "error";
 
 interface Props {
-  onBeforeUpdate: () => void;
+  onBeforeUpdate: () => boolean;
 }
 
 function shortVersion(version: string | null): string {
@@ -41,7 +41,10 @@ export function PWAUpdateSettings({ onBeforeUpdate }: Props) {
 
   async function updateNow() {
     setState("updating");
-    onBeforeUpdate();
+    if (!onBeforeUpdate()) {
+      setState("idle");
+      return;
+    }
     try {
       await replacePwaCaches();
     } catch {
