@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
-import { useSettingsStore } from "../../store/useSettingsStore";
+import { useDashboardStore } from "../../store/useDashboardStore";
 import type { CardConfig } from "../../types/dashboard";
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 
 export function EditCardModal({ card, pageId, onClose }: Props) {
   const [title, setTitle] = useState(card.title ?? "");
-  const updateCard = useSettingsStore((s) => s.updateCard);
+  const updateCard = useDashboardStore((s) => s.updateCard);
 
   function handleSave() {
     updateCard(pageId, { ...card, title: title.trim() || undefined });
@@ -22,10 +22,14 @@ export function EditCardModal({ card, pageId, onClose }: Props) {
     <Modal title="Edit Card" onClose={onClose}>
       <div className="p-5 space-y-5">
         <div>
-          <label className="block text-xs text-white/40 uppercase tracking-widest mb-2">
+          <label
+            htmlFor="card-title"
+            className="block text-xs text-white/40 uppercase tracking-widest mb-2"
+          >
             Custom Title
           </label>
           <input
+            id="card-title"
             type="text"
             placeholder="Leave blank to use HA name"
             value={title}
@@ -48,6 +52,7 @@ export function EditCardModal({ card, pageId, onClose }: Props) {
         </div>
 
         <button
+          type="button"
           onClick={handleSave}
           className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-95 rounded-xl text-sm font-semibold text-white transition-all duration-200"
         >

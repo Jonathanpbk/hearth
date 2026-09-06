@@ -28,7 +28,6 @@ export function PageSettingsModal({ page, canDelete, onSave, onDelete, onClose }
   }
 
   function handleDelete() {
-    if (!confirm(`Delete "${page.name}"? This removes all its cards.`)) return;
     onDelete();
   }
 

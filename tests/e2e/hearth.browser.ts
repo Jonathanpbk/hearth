@@ -144,6 +144,55 @@ test("lazy routes, dialogs, and sensor history load", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Edit Card" })).toBeVisible();
 });
 
+test("dashboard edits save or cancel as one transaction", async ({ page }) => {
+  await page.getByRole("button", { name: "Edit dashboard" }).click();
+  await page.getByRole("button", { name: "Edit card" }).first().click();
+  await page.getByLabel("Custom Title").fill("Cancelled title");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  await expect(page.getByText("Cancelled title", { exact: true })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("hearth-settings")))
+    .not.toContain("Cancelled title");
+
+  await page.getByRole("button", { name: "Cancel dashboard changes" }).click();
+  await expect(page.getByText("Test Light", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cancelled title", { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Edit dashboard" }).click();
+  await page.getByRole("button", { name: "Edit card" }).first().click();
+  await page.getByLabel("Custom Title").fill("Saved title");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Save dashboard changes" }).click();
+
+  await expect(page.getByText("Saved title", { exact: true })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("hearth-settings")))
+    .toContain("Saved title");
+});
+
+test("card deletion requires confirmation and supports undo", async ({ page }) => {
+  await page.getByRole("button", { name: "Edit dashboard" }).click();
+  const cards = page.locator(".react-grid-item");
+  await expect(cards).toHaveCount(4);
+
+  let confirmation = "";
+  page.once("dialog", async (dialog) => {
+    confirmation = dialog.message();
+    await dialog.accept();
+  });
+  await page.getByRole("button", { name: "Delete card" }).first().click();
+
+  expect(confirmation).toContain("Delete");
+  await expect(cards).toHaveCount(3);
+  await expect(page.getByText("Card removed.", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(cards).toHaveCount(4);
+  await page.getByRole("button", { name: "Cancel dashboard changes" }).click();
+  await expect(cards).toHaveCount(4);
+});
+
 test("runtime recovery replaces blank lazy failures", async ({ page }) => {
   await page.evaluate(() => {
     sessionStorage.setItem("hearth-runtime-recovery-at", String(Date.now()));

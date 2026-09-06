@@ -1,11 +1,12 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Plus, Undo2 } from "lucide-react";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { DashboardGrid } from "../components/dashboard/DashboardGrid";
 import { PageDock } from "../components/dashboard/PageDock";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { useDashboardStore } from "../store/useDashboardStore";
 import type { CardConfig } from "../types/dashboard";
+import type { DeletedCardSnapshot } from "../lib/dashboard-edit";
 
 const AddCardModal = lazy(() =>
   import("../components/dashboard/AddCardModal").then((module) => ({
@@ -19,16 +20,51 @@ const EditCardModal = lazy(() =>
 );
 
 export function DashboardView() {
-  const pages = useSettingsStore((s) => s.settings.pages);
-  const removeCard = useSettingsStore((s) => s.removeCard);
-  const updateLayout = useSettingsStore((s) => s.updateLayout);
+  const persistedPages = useSettingsStore((s) => s.settings.pages);
 
   const editMode = useDashboardStore((s) => s.editMode);
+  const draftPages = useDashboardStore((s) => s.draftPages);
   const currentPageId = useDashboardStore((s) => s.currentPageId);
   const setCurrentPageId = useDashboardStore((s) => s.setCurrentPageId);
+  const deleteCard = useDashboardStore((s) => s.deleteCard);
+  const restoreCard = useDashboardStore((s) => s.restoreCard);
+  const updateLayout = useDashboardStore((s) => s.updateLayout);
+  const pages = editMode && draftPages ? draftPages : persistedPages;
 
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardConfig | null>(null);
+  const [pendingDeletion, setPendingDeletion] =
+    useState<DeletedCardSnapshot | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearPendingDeletion() {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = null;
+    setPendingDeletion(null);
+  }
+
+  function handleDeleteCard(cardId: string) {
+    if (!currentPage) return;
+    const card = currentPage.cards.find((candidate) => candidate.id === cardId);
+    if (!card) return;
+    const label = card.title || card.entityId || card.type;
+    if (!confirm(`Delete "${label}"?`)) return;
+
+    const deletion = deleteCard(currentPage.id, cardId);
+    if (!deletion) return;
+    clearPendingDeletion();
+    setPendingDeletion(deletion);
+    undoTimerRef.current = setTimeout(() => {
+      undoTimerRef.current = null;
+      setPendingDeletion(null);
+    }, 8000);
+  }
+
+  function undoDeleteCard() {
+    if (!pendingDeletion) return;
+    restoreCard(pendingDeletion);
+    clearPendingDeletion();
+  }
 
   // Initialise / repair the current page pointer
   useEffect(() => {
@@ -41,6 +77,17 @@ export function DashboardView() {
     }
   }, [currentPageId, pages, setCurrentPageId]);
 
+  useEffect(() => {
+    if (!editMode) clearPendingDeletion();
+  }, [editMode]);
+
+  useEffect(
+    () => () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    },
+    []
+  );
+
   const currentPage = pages.find((p) => p.id === currentPageId) ?? pages[0];
 
   return (
@@ -52,12 +99,13 @@ export function DashboardView() {
             <EmptyPage editMode={editMode} onAddCard={() => setAddCardOpen(true)} />
           ) : (
             <DashboardGrid
+              key={`${currentPage.id}:${editMode ? "edit" : "view"}`}
               cards={currentPage.cards}
               layout={currentPage.layout}
               editMode={editMode}
               onLayoutChange={(layout) => updateLayout(currentPage.id, layout)}
               onEditCard={setEditingCard}
-              onDeleteCard={(id) => removeCard(currentPage.id, id)}
+              onDeleteCard={handleDeleteCard}
             />
           )}
         </div>
@@ -74,6 +122,23 @@ export function DashboardView() {
         )}
 
         <PageDock />
+
+        {editMode && pendingDeletion && (
+          <div
+            role="status"
+            className="absolute bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-xl border border-white/[0.1] bg-[var(--color-surface-2)] px-4 py-3 text-sm text-white shadow-xl"
+          >
+            <span>Card removed.</span>
+            <button
+              type="button"
+              onClick={undoDeleteCard}
+              className="flex items-center gap-1.5 font-medium text-[#ffc174] hover:text-white"
+            >
+              <Undo2 className="h-4 w-4" />
+              Undo
+            </button>
+          </div>
+        )}
       </div>
 
       <Suspense fallback={null}>

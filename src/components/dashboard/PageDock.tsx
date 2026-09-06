@@ -6,15 +6,17 @@ import { DynamicIcon } from "../DynamicIcon";
 import { PageSettingsModal } from "./PageSettingsModal";
 
 export function PageDock() {
-  const pages          = useSettingsStore((s) => s.settings.pages);
+  const persistedPages = useSettingsStore((s) => s.settings.pages);
   const showDock       = useSettingsStore((s) => s.settings.showDock);
-  const addPage        = useSettingsStore((s) => s.addPage);
-  const deletePage     = useSettingsStore((s) => s.deletePage);
-  const updatePageMeta = useSettingsStore((s) => s.updatePageMeta);
-  const reorderPages   = useSettingsStore((s) => s.reorderPages);
   const currentPageId  = useDashboardStore((s) => s.currentPageId);
   const setCurrentPageId = useDashboardStore((s) => s.setCurrentPageId);
   const editMode       = useDashboardStore((s) => s.editMode);
+  const draftPages     = useDashboardStore((s) => s.draftPages);
+  const addPage        = useDashboardStore((s) => s.addPage);
+  const deletePage     = useDashboardStore((s) => s.deletePage);
+  const updatePageMeta = useDashboardStore((s) => s.updatePageMeta);
+  const reorderPages   = useDashboardStore((s) => s.reorderPages);
+  const pages = editMode && draftPages ? draftPages : persistedPages;
 
   const [addingPage, setAddingPage]   = useState(false);
   const [newPageName, setNewPageName] = useState("");
@@ -29,6 +31,15 @@ export function PageDock() {
   useEffect(() => {
     if (addingPage) addInputRef.current?.focus();
   }, [addingPage]);
+
+  useEffect(() => {
+    if (editMode) return;
+    setAddingPage(false);
+    setNewPageName("");
+    setEditingPageId(null);
+    setDraggedId(null);
+    setInsertIndex(null);
+  }, [editMode]);
 
   if (!showDock) return null;
   if (pages.length <= 1 && !editMode) return null;
@@ -50,6 +61,10 @@ export function PageDock() {
   }
 
   function handleDeletePage(pageId: string) {
+    const page = pages.find((candidate) => candidate.id === pageId);
+    if (!page || !confirm(`Delete "${page.name}"? This removes all its cards.`)) {
+      return;
+    }
     const other = pages.find((p) => p.id !== pageId);
     if (other) setCurrentPageId(other.id);
     deletePage(pageId);
@@ -145,6 +160,7 @@ export function PageDock() {
                 }}
               >
                 <button
+                  type="button"
                   onClick={() => setCurrentPageId(page.id)}
                   className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl font-medium
                     transition-all duration-200 select-none min-w-[56px]
@@ -160,6 +176,7 @@ export function PageDock() {
                 {/* Pencil badge — edit mode: opens page settings */}
                 {editMode && (
                   <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); setEditingPageId(page.id); }}
                     className="absolute -top-1 -left-1 h-4 w-4 rounded-full bg-[var(--color-surface-2)] border border-white/20 hover:bg-white/20 flex items-center justify-center transition-colors"
                     aria-label={`Edit ${page.name}`}
@@ -171,6 +188,7 @@ export function PageDock() {
                 {/* Delete badge — edit mode, multiple pages */}
                 {editMode && pages.length > 1 && (
                   <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); handleDeletePage(page.id); }}
                     className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-colors"
                     aria-label={`Delete ${page.name}`}
@@ -203,6 +221,7 @@ export function PageDock() {
                   className="w-24 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
                 />
                 <button
+                  type="button"
                   onClick={handleAddPage}
                   className="text-xs text-white/60 hover:text-white transition-colors shrink-0"
                 >
@@ -211,6 +230,7 @@ export function PageDock() {
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => setAddingPage(true)}
                 className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Add page"
