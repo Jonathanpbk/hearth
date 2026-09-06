@@ -180,9 +180,9 @@ test("settings reject invalid saves and imports", async ({ page }) => {
 
   await haUrl.fill("http://127.0.0.1:4173/");
   await page.getByRole("button", { name: "Test" }).click();
-  await expect(page.getByRole("status")).toHaveText(
-    "Connected to Home Assistant."
-  );
+  await expect(
+    page.getByText("Connected to Home Assistant.", { exact: true })
+  ).toBeVisible();
 
   await page.getByLabel("Import settings file").setInputFiles({
     name: "invalid-settings.json",
