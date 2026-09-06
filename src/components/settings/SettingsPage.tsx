@@ -7,6 +7,13 @@ import { ConnectionSettings } from "./ConnectionSettings";
 import { CameraSettings } from "./CameraSettings";
 import { DisplaySettings } from "./DisplaySettings";
 import { PWAUpdateSettings } from "./PWAUpdateSettings";
+import {
+  parseSettingsBackup,
+  serializeSettingsBackup,
+  validateSettings,
+  type SettingsErrors,
+  type SettingsField,
+} from "../../lib/settings-validation";
 
 const STORAGE_KEY = "hearth-settings";
 
@@ -27,16 +34,33 @@ export function SettingsPage() {
   const { settings, setSettings } = useSettingsStore();
   const navigate = useNavigate();
   const [form, setForm] = useState<Settings>(settings);
+  const [errors, setErrors] = useState<SettingsErrors>({});
+  const [importError, setImportError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const isConfigured = !!(settings.haToken && settings.haUrl);
 
   function handleChange<K extends keyof Settings>(key: K, value: Settings[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setErrors((current) => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key as SettingsField];
+      return next;
+    });
+  }
+
+  function saveForm(): Settings | null {
+    const result = validateSettings(form);
+    setErrors(result.errors);
+    if (!result.settings) return null;
+    setForm(result.settings);
+    setSettings(result.settings);
+    return result.settings;
   }
 
   function handleSave() {
-    setSettings(form);
+    if (!saveForm()) return;
     navigate("/");
   }
 
@@ -45,17 +69,20 @@ export function SettingsPage() {
     if (!file) return;
     // Reset input so the same file can be re-imported if needed
     e.target.value = "";
+    setImportError("");
 
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const text = ev.target?.result as string;
-        JSON.parse(text); // validate JSON before touching storage
+        const imported = parseSettingsBackup(text);
         if (!confirm("This will overwrite all current settings and page layouts. Continue?")) return;
-        localStorage.setItem(STORAGE_KEY, text);
+        localStorage.setItem(STORAGE_KEY, serializeSettingsBackup(imported));
         window.location.reload();
-      } catch {
-        alert("Could not import: invalid settings file.");
+      } catch (error) {
+        setImportError(
+          error instanceof Error ? error.message : "The settings import failed."
+        );
       }
     };
     reader.readAsText(file);
@@ -81,6 +108,7 @@ export function SettingsPage() {
           haUrl={form.haUrl}
           haToken={form.haToken}
           weatherEntityId={form.weatherEntityId}
+          errors={errors}
           onUrlChange={(v) => handleChange("haUrl", v)}
           onTokenChange={(v) => handleChange("haToken", v)}
           onWeatherEntityChange={(v) => handleChange("weatherEntityId", v)}
@@ -91,6 +119,7 @@ export function SettingsPage() {
           go2rtcUrl={form.go2rtcUrl}
           cameraEventName={form.cameraEventName}
           cameraDefaultDuration={form.cameraDefaultDuration}
+          errors={errors}
           onCameraEnabledChange={(v) => handleChange("cameraEnabled", v)}
           onGo2rtcUrlChange={(v) => handleChange("go2rtcUrl", v)}
           onCameraEventNameChange={(v) => handleChange("cameraEventName", v)}
@@ -105,6 +134,7 @@ export function SettingsPage() {
           showDock={form.showDock}
           autoDim={form.autoDim}
           dimTimeout={form.dimTimeout}
+          errors={errors}
           onWakeLockChange={(v) => handleChange("wakeLockEnabled", v)}
           onClockFormatChange={(v) => handleChange("clockFormat", v)}
           onShowDockChange={(v) => handleChange("showDock", v)}
@@ -113,13 +143,20 @@ export function SettingsPage() {
         />
 
         <button
+          type="button"
           onClick={handleSave}
           className="w-full py-3 bg-blue-500 hover:bg-blue-600 active:scale-95 rounded-xl text-sm font-semibold text-white transition-all duration-200 mt-2"
         >
           Save
         </button>
 
-        <PWAUpdateSettings onBeforeUpdate={() => setSettings(form)} />
+        {Object.keys(errors).length > 0 && (
+          <p role="alert" className="text-sm text-red-400 text-center">
+            Fix the highlighted settings before saving.
+          </p>
+        )}
+
+        <PWAUpdateSettings onBeforeUpdate={() => Boolean(saveForm())} />
 
         {/* Export / Import */}
         <div className="pt-4 border-t border-white/[0.06]">
@@ -128,6 +165,7 @@ export function SettingsPage() {
           </p>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={exportSettings}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.1] hover:border-white/20 text-sm text-white/60 hover:text-white transition-colors"
             >
@@ -135,6 +173,7 @@ export function SettingsPage() {
               Export
             </button>
             <button
+              type="button"
               onClick={() => importInputRef.current?.click()}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.1] hover:border-white/20 text-sm text-white/60 hover:text-white transition-colors"
             >
@@ -146,9 +185,15 @@ export function SettingsPage() {
               type="file"
               accept="application/json,.json"
               onChange={handleImport}
+              aria-label="Import settings file"
               className="hidden"
             />
           </div>
+          {importError && (
+            <p role="alert" className="text-xs text-red-400 mt-2">
+              {importError}
+            </p>
+          )}
         </div>
       </div>
     </div>

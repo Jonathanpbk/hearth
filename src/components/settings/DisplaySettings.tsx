@@ -1,9 +1,12 @@
+import type { SettingsErrors } from "../../lib/settings-validation";
+
 interface Props {
   wakeLockEnabled: boolean;
   clockFormat: "12h" | "24h";
   showDock: boolean;
   autoDim: boolean;
   dimTimeout: number;
+  errors: SettingsErrors;
   onWakeLockChange: (v: boolean) => void;
   onClockFormatChange: (v: "12h" | "24h") => void;
   onShowDockChange: (v: boolean) => void;
@@ -16,14 +19,18 @@ const labelClass = "block text-xs uppercase tracking-widest text-white/40 mb-1.5
 function Toggle({
   value,
   onChange,
+  label,
 }: {
   value: boolean;
   onChange: (v: boolean) => void;
+  label: string;
 }) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
         value ? "bg-blue-500" : "bg-white/20"
@@ -44,6 +51,7 @@ export function DisplaySettings({
   showDock,
   autoDim,
   dimTimeout,
+  errors,
   onWakeLockChange,
   onClockFormatChange,
   onShowDockChange,
@@ -61,6 +69,7 @@ export function DisplaySettings({
         <div className="flex gap-1 bg-white/[0.06] rounded-lg p-0.5">
           {(["12h", "24h"] as const).map((fmt) => (
             <button
+              type="button"
               key={fmt}
               onClick={() => onClockFormatChange(fmt)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
@@ -82,7 +91,11 @@ export function DisplaySettings({
             Prevent the screen from sleeping while the dashboard is open
           </p>
         </div>
-        <Toggle value={wakeLockEnabled} onChange={onWakeLockChange} />
+        <Toggle
+          value={wakeLockEnabled}
+          onChange={onWakeLockChange}
+          label="Screen Wake Lock"
+        />
       </div>
 
       <div className="flex items-center justify-between">
@@ -92,7 +105,11 @@ export function DisplaySettings({
             Show the floating page dock at the bottom of the dashboard
           </p>
         </div>
-        <Toggle value={showDock} onChange={onShowDockChange} />
+        <Toggle
+          value={showDock}
+          onChange={onShowDockChange}
+          label="Show Navigation Dock"
+        />
       </div>
 
       <div className="flex items-center justify-between">
@@ -102,7 +119,11 @@ export function DisplaySettings({
             Dim the screen after a period of inactivity
           </p>
         </div>
-        <Toggle value={autoDim} onChange={onAutoDimChange} />
+        <Toggle
+          value={autoDim}
+          onChange={onAutoDimChange}
+          label="Auto-dim"
+        />
       </div>
 
       {autoDim && (
@@ -111,20 +132,27 @@ export function DisplaySettings({
             <p className="text-sm text-white">Dim after</p>
             <p className="text-xs text-white/40 mt-0.5">Seconds of inactivity before dimming</p>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={10}
-              max={3600}
-              value={dimTimeout}
-              onChange={(e) => {
-                const v = Math.min(3600, Math.max(10, Number(e.target.value)));
-                onDimTimeoutChange(v);
-              }}
-              className="w-20 px-3 py-1.5 rounded-lg bg-[var(--color-surface-2)] border border-white/[0.08]
-                text-sm text-white text-right outline-none focus:border-white/20 transition-colors"
-            />
-            <span className="text-xs text-white/40">sec</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <input
+                aria-label="Dim after seconds"
+                type="number"
+                min={10}
+                max={3600}
+                value={dimTimeout}
+                onChange={(e) => onDimTimeoutChange(Number(e.target.value))}
+                aria-invalid={Boolean(errors.dimTimeout)}
+                aria-describedby={errors.dimTimeout ? "dim-timeout-error" : undefined}
+                className="w-20 px-3 py-1.5 rounded-lg bg-[var(--color-surface-2)] border border-white/[0.08] aria-[invalid=true]:border-red-500/60
+                  text-sm text-white text-right outline-none focus:border-white/20 transition-colors"
+              />
+              <span className="text-xs text-white/40">sec</span>
+            </div>
+            {errors.dimTimeout && (
+              <p id="dim-timeout-error" className="text-xs text-red-400 mt-1.5">
+                {errors.dimTimeout}
+              </p>
+            )}
           </div>
         </div>
       )}

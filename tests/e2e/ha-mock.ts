@@ -383,6 +383,14 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
     { entities: mockEntities, settings: persistedSettings }
   );
 
+  await page.route("**/api/", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ message: "API running." }),
+    });
+  });
+
   await page.route("**/api/history/period/**", async (route) => {
     await route.fulfill({
       status: 200,

@@ -163,6 +163,37 @@ test("settings reports the installed PWA build", async ({ page }) => {
   await expect(page.getByText("Unknown", { exact: true })).toHaveCount(0);
 });
 
+test("settings reject invalid saves and imports", async ({ page }) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  const haUrl = page.getByLabel("Home Assistant URL");
+  await haUrl.fill("ftp://ha.example.com");
+  await page.getByRole("button", { name: "Save" }).click();
+
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(
+    page.getByText("Enter a valid HTTP or HTTPS URL.")
+  ).toBeVisible();
+  await expect(
+    page.getByText("Fix the highlighted settings before saving.")
+  ).toBeVisible();
+
+  await haUrl.fill("http://127.0.0.1:4173/");
+  await page.getByRole("button", { name: "Test" }).click();
+  await expect(
+    page.getByText("Connected to Home Assistant.", { exact: true })
+  ).toBeVisible();
+
+  await page.getByLabel("Import settings file").setInputFiles({
+    name: "invalid-settings.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"hello":"world"}'),
+  });
+  await expect(
+    page.getByText("The selected file is not a Hearth settings backup.")
+  ).toBeVisible();
+});
+
 test("camera events validate payloads and reset the overlay timer", async ({ page }) => {
   await waitForCameraSubscription(page);
 
