@@ -144,6 +144,55 @@ test("lazy routes, dialogs, and sensor history load", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Edit Card" })).toBeVisible();
 });
 
+test("runtime recovery replaces blank lazy failures", async ({ page }) => {
+  await page.evaluate(() => {
+    sessionStorage.setItem("hearth-runtime-recovery-at", String(Date.now()));
+  });
+
+  let settingsRequests = 0;
+  let releaseRequest = () => {};
+  const requestGate = new Promise<void>((resolve) => {
+    releaseRequest = resolve;
+  });
+
+  await page.route("**/src/views/SettingsView.tsx*", async (route) => {
+    settingsRequests += 1;
+    if (settingsRequests === 1) {
+      await requestGate;
+      await route.abort("failed");
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(
+    page.getByText("Loading Hearth.", { exact: true })
+  ).toBeVisible();
+
+  releaseRequest();
+  await expect(
+    page.getByRole("heading", { name: "Hearth needs to reload" })
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Your saved settings and dashboard layout are still stored.",
+      { exact: false }
+    )
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => localStorage.getItem("hearth-settings"))
+    )
+    .toContain("test-token");
+
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByLabel("Home Assistant URL")).toHaveValue(
+    "http://127.0.0.1:4173"
+  );
+});
+
 test("PWA recovery returns to Hearth without clearing storage", async ({ page }) => {
   await page.evaluate(() => localStorage.setItem("e2e-preserved", "yes"));
   await page.goto("/api/pwa-update.html");

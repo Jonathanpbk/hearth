@@ -9,6 +9,7 @@ import { useCameraEvent } from "./hooks/useCameraEvent";
 import { CameraOverlay } from "./components/camera/CameraOverlay";
 import { DimOverlay } from "./components/DimOverlay";
 import { ServiceErrorToast } from "./components/ServiceErrorToast";
+import { RuntimeLoading } from "./components/RuntimeLoading";
 
 const DashboardView = lazy(() =>
   import("./views/DashboardView").then((module) => ({ default: module.DashboardView }))
@@ -124,7 +125,7 @@ export default function App() {
       <WakeLockManager />
       <CameraEventManager />
       <DimManager />
-      <Suspense fallback={null}>
+      <Suspense fallback={<RuntimeLoading />}>
         <Routes>
           <Route
             path="/"
