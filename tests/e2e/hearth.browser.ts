@@ -156,6 +156,14 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
     .toBe("yes");
 });
 
+test("settings reports the installed PWA build", async ({ page }) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Check for updates" }).click();
+
+  await expect(page.getByRole("status")).toHaveText("Hearth is up to date.");
+  await expect(page.getByText("Unknown", { exact: true })).toHaveCount(0);
+});
+
 test("camera events validate payloads and reset the overlay timer", async ({ page }) => {
   await waitForCameraSubscription(page);
 
