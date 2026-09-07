@@ -45,6 +45,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify production security headers
+        run: |
+          docker build -t hearth-ci .
+          docker run -d --name hearth-ci -p 127.0.0.1:8080:80 hearth-ci
+          trap 'docker rm -f hearth-ci' EXIT
+          docker exec hearth-ci nginx -t
+          curl --retry 10 --retry-all-errors --retry-delay 1 -fsS -o /dev/null http://127.0.0.1:8080/
+          curl -fsSI http://127.0.0.1:8080/ | tee /tmp/hearth-headers
+          grep -qi '^Content-Security-Policy:' /tmp/hearth-headers
+          grep -qi '^Permissions-Policy:' /tmp/hearth-headers
+          grep -qi '^Referrer-Policy: no-referrer' /tmp/hearth-headers
+          grep -qi '^X-Content-Type-Options: nosniff' /tmp/hearth-headers
+          grep -qi '^X-Frame-Options: DENY' /tmp/hearth-headers
+          curl -fsS http://127.0.0.1:8080/api/pwa-update.html | grep -q '/api/pwa-update.js'
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
