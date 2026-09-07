@@ -28,7 +28,7 @@ describe("browser security hardening", () => {
 
     expect(
       nginx.match(/include \/etc\/nginx\/security-headers\.conf;/g)
-    ).toHaveLength(12);
+    ).toHaveLength(13);
     expect(dockerfile).toContain(
       "COPY nginx-security-headers.conf /etc/nginx/security-headers.conf"
     );

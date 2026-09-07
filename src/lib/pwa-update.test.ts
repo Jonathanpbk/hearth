@@ -25,11 +25,19 @@ describe("PWA version helpers", () => {
   it("requests the network-only build version", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ version: "assets/index-latest.js" }),
+      json: async () => ({
+        schemaVersion: 1,
+        release: "1.0.0",
+        commit: "0123456789abcdef",
+        version: "assets/index-latest.js",
+      }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(fetchLatestPwaVersion()).resolves.toEqual({
+      schemaVersion: 1,
+      release: "1.0.0",
+      commit: "0123456789abcdef",
       version: "assets/index-latest.js",
     });
     expect(fetchMock).toHaveBeenCalledWith(

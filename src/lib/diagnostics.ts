@@ -15,6 +15,8 @@ export type ServiceWorkerStatus =
 export interface DiagnosticsReportInput {
   generatedAt?: number;
   settings: Settings;
+  releaseVersion: string;
+  buildCommit: string;
   installedBuild: string | null;
   latestBuild: string | null;
   serviceWorkerStatus: ServiceWorkerStatus;
@@ -51,6 +53,8 @@ export function createDiagnosticsReport(input: DiagnosticsReportInput): string {
     reportVersion: 1,
     generatedAt: new Date(input.generatedAt ?? Date.now()).toISOString(),
     hearth: {
+      releaseVersion: input.releaseVersion,
+      buildCommit: input.buildCommit,
       installedBuild: input.installedBuild,
       latestBuild: input.latestBuild,
       serviceWorkerStatus: input.serviceWorkerStatus,

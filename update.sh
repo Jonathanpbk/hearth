@@ -45,12 +45,14 @@ health_check() {
 
 pwa_check() {
     local base_url="$1"
+    local expected_commit="$2"
     local service_worker_headers
     local app_html
     local worker_script
     local recovery_html
     local app_bundle
     local worker_bundle
+    local version_json
 
     service_worker_headers="$(curl -fsSI --max-time 10 "$base_url/sw.js")" || return 1
     grep -qi '^Cache-Control:.*no-store' <<<"$service_worker_headers" || return 1
@@ -59,12 +61,16 @@ pwa_check() {
     app_html="$(curl -fsS --max-time 10 "$base_url/")" || return 1
     worker_script="$(curl -fsS --max-time 10 "$base_url/sw.js")" || return 1
     recovery_html="$(curl -fsS --max-time 10 "$base_url/api/pwa-update.html")" || return 1
+    version_json="$(curl -fsS --max-time 10 "$base_url/api/version.json")" || return 1
 
     app_bundle="$(grep -m 1 -oE 'assets/index-[A-Za-z0-9_-]+\.js' <<<"$app_html")" || return 1
     worker_bundle="$(grep -m 1 -oE 'assets/index-[A-Za-z0-9_-]+\.js' <<<"$worker_script")" || return 1
 
     [[ -n "$app_bundle" && "$app_bundle" == "$worker_bundle" ]] || return 1
     grep -q '<title>Updating Hearth</title>' <<<"$recovery_html" || return 1
+    grep -q '"schemaVersion":1' <<<"$version_json" || return 1
+    grep -q '"release":"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*"' <<<"$version_json" || return 1
+    grep -q "\"commit\":\"$expected_commit\"" <<<"$version_json" || return 1
 
     log "PWA checks passed. Bundle: $app_bundle"
 }
@@ -85,13 +91,16 @@ if [[ "${HEARTH_UPDATE_SYNCED:-0}" != "1" ]]; then
     exec env HEARTH_UPDATE_SYNCED=1 bash "$SCRIPT_PATH"
 fi
 
-readonly COMMIT="$(git rev-parse --short=7 HEAD)"
+readonly FULL_COMMIT="$(git rev-parse HEAD)"
+readonly COMMIT="${FULL_COMMIT:0:7}"
 readonly IMAGE="hearth:$COMMIT"
 readonly BACKUP_CONTAINER="hearth-backup-$(date +%Y%m%d-%H%M%S)"
+had_live_container=0
 
 if docker container inspect "$LIVE_CONTAINER" >/dev/null 2>&1; then
+    had_live_container=1
     current_image="$(docker inspect "$LIVE_CONTAINER" --format '{{.Config.Image}}')"
-    if [[ "$current_image" == "$IMAGE" ]] && health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/"; then
+    if [[ "$current_image" == "$IMAGE" ]] && health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/healthz"; then
         log "Hearth $COMMIT is already deployed and healthy"
         exit 0
     fi
@@ -101,7 +110,10 @@ trap cleanup_test_container EXIT
 cleanup_test_container
 
 log "Building $IMAGE"
-docker build -t "$IMAGE" .
+docker build \
+    --build-arg "HEARTH_BUILD_SHA=$FULL_COMMIT" \
+    -t "$IMAGE" \
+    .
 
 log "Starting test container"
 docker run -d \
@@ -109,22 +121,27 @@ docker run -d \
     -p "127.0.0.1:$TEST_PORT:80" \
     "$IMAGE" >/dev/null
 
-health_check "$TEST_CONTAINER" "http://127.0.0.1:$TEST_PORT/" || fail "Test deployment failed"
-pwa_check "http://127.0.0.1:$TEST_PORT" || fail "Test PWA checks failed"
+health_check "$TEST_CONTAINER" "http://127.0.0.1:$TEST_PORT/healthz" || fail "Test deployment failed"
+pwa_check "http://127.0.0.1:$TEST_PORT" "$FULL_COMMIT" || fail "Test PWA checks failed"
 cleanup_test_container
 
-docker container inspect "$LIVE_CONTAINER" >/dev/null 2>&1 || fail "Live Hearth container was not found"
-
-log "Stopping the current Hearth container"
-docker stop "$LIVE_CONTAINER" >/dev/null
-if ! docker rename "$LIVE_CONTAINER" "$BACKUP_CONTAINER"; then
-    docker start "$LIVE_CONTAINER" >/dev/null
-    fail "The live container could not be renamed. The previous release was restarted"
+if ((had_live_container)); then
+    log "Stopping the current Hearth container"
+    docker stop "$LIVE_CONTAINER" >/dev/null
+    if ! docker rename "$LIVE_CONTAINER" "$BACKUP_CONTAINER"; then
+        docker start "$LIVE_CONTAINER" >/dev/null
+        fail "The live container could not be renamed. The previous release was restarted"
+    fi
+else
+    log "No existing Hearth container was found. Starting an initial deployment"
 fi
 
 rollback() {
-    log "Deployment failed. Restoring $BACKUP_CONTAINER"
     docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
+    if ((!had_live_container)); then
+        fail "Initial deployment failed. No previous release exists"
+    fi
+    log "Deployment failed. Restoring $BACKUP_CONTAINER"
     docker rename "$BACKUP_CONTAINER" "$LIVE_CONTAINER"
     docker start "$LIVE_CONTAINER" >/dev/null
     health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/" || \
@@ -140,8 +157,8 @@ if ! docker run -d \
     rollback
 fi
 
-health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/" || rollback
-pwa_check "http://127.0.0.1:$LIVE_PORT" || rollback
+health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/healthz" || rollback
+pwa_check "http://127.0.0.1:$LIVE_PORT" "$FULL_COMMIT" || rollback
 
 mapfile -t older_backups < <(
     docker ps -a \
@@ -172,7 +189,11 @@ fi
 trap - EXIT
 
 log "Hearth $COMMIT deployed successfully"
-log "Rollback container: $BACKUP_CONTAINER"
+if ((had_live_container)); then
+    log "Rollback container: $BACKUP_CONTAINER"
+else
+    log "Rollback container: none for initial deployment"
+fi
 docker ps \
     --filter 'name=^/hearth$' \
     --format 'Name: {{.Names}}  Image: {{.Image}}  Status: {{.Status}}  Ports: {{.Ports}}'

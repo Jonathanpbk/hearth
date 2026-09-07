@@ -468,6 +468,9 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
 
 test("settings reports the installed PWA build", async ({ page }) => {
   await page.getByRole("button", { name: "Settings" }).click();
+  await expect(
+    page.getByText("v1.0.0 (development)", { exact: true })
+  ).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
 
   await expect(page.getByRole("status")).toHaveText("Hearth is up to date.");
@@ -492,6 +495,7 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
     return testWindow.__copiedDiagnostics;
   });
   const report = JSON.parse(copied) as {
+    hearth: { releaseVersion: string; buildCommit: string };
     configuration: Record<string, unknown>;
     homeAssistant: { connectionStatus: string };
     display: { wakeLockStatus: string };
@@ -500,6 +504,8 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
   expect(copied).not.toContain("test-token");
   expect(copied).not.toContain("127.0.0.1:4173");
   expect(copied).not.toContain("go2rtc.test");
+  expect(report.hearth.releaseVersion).toBe("1.0.0");
+  expect(report.hearth.buildCommit).toBe("development");
   expect(report.configuration.homeAssistantConfigured).toBe(true);
   expect(report.homeAssistant.connectionStatus).toBe("connected");
   expect(report.display.wakeLockStatus).toBe("active");

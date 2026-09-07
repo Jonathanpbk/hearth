@@ -2,6 +2,23 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+const buildEnvironment = (
+  globalThis as typeof globalThis & {
+    process?: { env: Record<string, string | undefined> };
+  }
+).process?.env ?? {};
+const releaseVersion = buildEnvironment.npm_package_version ?? "0.0.0";
+const buildCommit = buildEnvironment.HEARTH_BUILD_SHA?.trim() || "development";
+
+function versionPayload(version: string) {
+  return {
+    schemaVersion: 1,
+    release: releaseVersion,
+    commit: buildCommit,
+    version,
+  };
+}
+
 function hearthVersionPlugin(): Plugin {
   return {
     name: "hearth-version",
@@ -9,7 +26,7 @@ function hearthVersionPlugin(): Plugin {
       server.middlewares.use("/api/version.json", (_request, response) => {
         response.setHeader("Content-Type", "application/json");
         response.setHeader("Cache-Control", "no-store");
-        response.end(JSON.stringify({ version: "development" }));
+        response.end(JSON.stringify(versionPayload("development")));
       });
     },
     generateBundle(_options, bundle) {
@@ -27,13 +44,17 @@ function hearthVersionPlugin(): Plugin {
       this.emitFile({
         type: "asset",
         fileName: "api/version.json",
-        source: JSON.stringify({ version: entry.fileName }),
+        source: JSON.stringify(versionPayload(entry.fileName)),
       });
     },
   };
 }
 
 export default defineConfig({
+  define: {
+    __HEARTH_RELEASE_VERSION__: JSON.stringify(releaseVersion),
+    __HEARTH_BUILD_SHA__: JSON.stringify(buildCommit),
+  },
   plugins: [
     react(),
     hearthVersionPlugin(),
