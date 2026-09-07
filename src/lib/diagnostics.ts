@@ -89,11 +89,22 @@ export function createDiagnosticsReport(input: DiagnosticsReportInput): string {
   return JSON.stringify(report, null, 2);
 }
 
-export async function copyDiagnosticsText(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
+export async function copyDiagnosticsText(
+  text: string,
+  clipboard?: Pick<Clipboard, "writeText"> | null
+): Promise<void> {
+  const writer = clipboard === undefined
+    ? typeof navigator === "undefined"
+      ? null
+      : navigator.clipboard
+    : clipboard;
+
+  if (writer?.writeText) {
+    await writer.writeText(text);
     return;
   }
+
+  if (typeof document === "undefined") throw new Error("Copy is unavailable");
 
   const textarea = document.createElement("textarea");
   textarea.value = text;

@@ -63,12 +63,8 @@ describe("diagnostics report", () => {
 
   it("copies through the browser clipboard", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
 
-    await copyDiagnosticsText("diagnostic report");
+    await copyDiagnosticsText("diagnostic report", { writeText });
 
     expect(writeText).toHaveBeenCalledWith("diagnostic report");
   });
