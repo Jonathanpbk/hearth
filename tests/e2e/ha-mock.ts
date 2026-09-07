@@ -156,7 +156,10 @@ export const persistedSettings = {
 export async function installHearthTestHarness(page: Page): Promise<void> {
   await page.addInitScript(
     ({ entities, settings }) => {
-      localStorage.setItem("hearth-settings", JSON.stringify(settings));
+      if (!sessionStorage.getItem("hearth-test-storage-installed")) {
+        localStorage.setItem("hearth-settings", JSON.stringify(settings));
+        sessionStorage.setItem("hearth-test-storage-installed", "yes");
+      }
 
       const browserWindow = window as unknown as {
         __haMessages: MockMessage[];

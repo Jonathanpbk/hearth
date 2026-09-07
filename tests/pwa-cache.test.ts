@@ -6,6 +6,10 @@ const recoveryPage = readFileSync(
   new URL("../public/api/pwa-update.html", import.meta.url),
   "utf8"
 );
+const recoveryScript = readFileSync(
+  new URL("../public/api/pwa-update.js", import.meta.url),
+  "utf8"
+);
 
 describe("PWA cache configuration", () => {
   it.each([
@@ -15,6 +19,10 @@ describe("PWA cache configuration", () => {
     "/manifest.webmanifest",
     "/api/version.json",
     "/api/pwa-update.html",
+    "/api/pwa-update.js",
+    "/api/pwa-update.css",
+    "/offline.html",
+    "/offline.css",
   ])(
     "uses an exact no-store location for %s",
     (path) => {
@@ -28,10 +36,11 @@ describe("PWA cache configuration", () => {
   );
 
   it("refreshes PWA caches without removing saved settings", () => {
-    expect(recoveryPage).toContain("getRegistrations");
-    expect(recoveryPage).toContain("registration.unregister()");
-    expect(recoveryPage).toContain("caches.delete(cacheName)");
-    expect(recoveryPage).not.toContain("localStorage.clear");
-    expect(recoveryPage).not.toContain("localStorage.removeItem");
+    expect(recoveryPage).toContain('src="/api/pwa-update.js"');
+    expect(recoveryScript).toContain("getRegistrations");
+    expect(recoveryScript).toContain("registration.unregister()");
+    expect(recoveryScript).toContain("caches.delete(cacheName)");
+    expect(recoveryScript).not.toContain("localStorage.clear");
+    expect(recoveryScript).not.toContain("localStorage.removeItem");
   });
 });

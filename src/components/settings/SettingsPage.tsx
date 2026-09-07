@@ -8,27 +8,41 @@ import { CameraSettings } from "./CameraSettings";
 import { DisplaySettings } from "./DisplaySettings";
 import { PWAUpdateSettings } from "./PWAUpdateSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
+import { Modal } from "../dashboard/Modal";
 import {
   parseSettingsBackup,
+  restoreSettingsBackup,
   serializeSettingsBackup,
+  serializePersistedSettings,
   validateSettings,
+  type ParsedSettingsBackup,
   type SettingsErrors,
   type SettingsField,
 } from "../../lib/settings-validation";
 
 const STORAGE_KEY = "hearth-settings";
 
-function exportSettings() {
-  const data = localStorage.getItem(STORAGE_KEY) ?? "{}";
+function downloadBackup(data: string, filename: string) {
   const blob = new Blob([data], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `hearth-settings-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function exportSettings(settings: Settings) {
+  downloadBackup(
+    serializeSettingsBackup(settings),
+    `hearth-settings-${new Date().toISOString().slice(0, 10)}.json`
+  );
+}
+
+function formatExportDate(value: string | null): string {
+  return value ? new Date(value).toLocaleString() : "Legacy backup";
 }
 
 export function SettingsPage() {
@@ -37,6 +51,9 @@ export function SettingsPage() {
   const [form, setForm] = useState<Settings>(settings);
   const [errors, setErrors] = useState<SettingsErrors>({});
   const [importError, setImportError] = useState("");
+  const [pendingImport, setPendingImport] =
+    useState<ParsedSettingsBackup | null>(null);
+  const [importToken, setImportToken] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const isConfigured = !!(settings.haToken && settings.haUrl);
@@ -77,9 +94,8 @@ export function SettingsPage() {
       try {
         const text = ev.target?.result as string;
         const imported = parseSettingsBackup(text);
-        if (!confirm("This will overwrite all current settings and page layouts. Continue?")) return;
-        localStorage.setItem(STORAGE_KEY, serializeSettingsBackup(imported));
-        window.location.reload();
+        setPendingImport(imported);
+        setImportToken("");
       } catch (error) {
         setImportError(
           error instanceof Error ? error.message : "The settings import failed."
@@ -88,6 +104,44 @@ export function SettingsPage() {
     };
     reader.readAsText(file);
   }
+
+  function closeImportPreview() {
+    setPendingImport(null);
+    setImportToken("");
+    setImportError("");
+  }
+
+  function applyImport() {
+    if (!pendingImport) return;
+    setImportError("");
+
+    try {
+      const restored = restoreSettingsBackup(
+        pendingImport,
+        settings.haToken,
+        importToken
+      );
+      const timestamp = new Date();
+      if (validateSettings(settings).settings) {
+        downloadBackup(
+          serializeSettingsBackup(settings, timestamp),
+          `hearth-recovery-before-import-${timestamp
+            .toISOString()
+            .replace(/[:.]/g, "-")}.json`
+        );
+      }
+      localStorage.setItem(STORAGE_KEY, serializePersistedSettings(restored));
+      window.location.reload();
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "The settings import failed."
+      );
+    }
+  }
+
+  const importNeedsToken = Boolean(
+    pendingImport && !settings.haToken.trim() && !pendingImport.embeddedToken
+  );
 
   return (
     <div className="h-full overflow-y-auto">
@@ -169,7 +223,7 @@ export function SettingsPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={exportSettings}
+              onClick={() => exportSettings(settings)}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.1] hover:border-white/20 text-sm text-white/60 hover:text-white transition-colors"
             >
               <Download className="h-4 w-4" />
@@ -199,6 +253,95 @@ export function SettingsPage() {
           )}
         </div>
       </div>
+
+      {pendingImport && (
+        <Modal title="Review backup" onClose={closeImportPreview}>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-white/45">Format</span>
+                <span className="text-white/75">
+                  {pendingImport.legacy
+                    ? "Legacy backup"
+                    : `Version ${pendingImport.version}`}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/45">Exported</span>
+                <span className="text-right text-white/75">
+                  {formatExportDate(pendingImport.exportedAt)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/45">Pages</span>
+                <span className="text-white/75">{pendingImport.pageCount}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/45">Cards</span>
+                <span className="text-white/75">{pendingImport.cardCount}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-white/45">Home Assistant token</span>
+                <span className="text-right text-white/75">
+                  {settings.haToken.trim()
+                    ? "Keep token from this device"
+                    : pendingImport.embeddedToken
+                      ? "Use token from legacy backup"
+                      : "Token required"}
+                </span>
+              </div>
+            </div>
+
+            {importNeedsToken && (
+              <div>
+                <label
+                  htmlFor="import-ha-token"
+                  className="block text-sm text-white/65 mb-2"
+                >
+                  Home Assistant access token
+                </label>
+                <input
+                  id="import-ha-token"
+                  type="password"
+                  autoFocus
+                  value={importToken}
+                  onChange={(event) => setImportToken(event.target.value)}
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-white/10 bg-[#1a1a1a] px-3 py-2.5 text-sm text-white focus:border-blue-500/50 focus:outline-none"
+                />
+              </div>
+            )}
+
+            {importError && (
+              <p role="alert" className="text-xs text-red-400">
+                {importError}
+              </p>
+            )}
+
+            <p className="text-xs leading-relaxed text-white/45">
+              Importing replaces your saved settings, pages, and card layout.
+              Hearth downloads a token-free recovery backup first.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={closeImportPreview}
+                className="min-h-11 rounded-lg border border-white/10 px-4 text-sm text-white/60 hover:border-white/20 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={applyImport}
+                className="min-h-11 rounded-lg bg-blue-500 px-4 text-sm font-medium text-white hover:bg-blue-600"
+              >
+                Import backup
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

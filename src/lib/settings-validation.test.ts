@@ -3,7 +3,11 @@ import { defaultSettings } from "../types/settings";
 import {
   normalizeHttpUrl,
   parseSettingsBackup,
+  restoreSettingsBackup,
   serializeSettingsBackup,
+  serializePersistedSettings,
+  SETTINGS_BACKUP_FORMAT,
+  SETTINGS_BACKUP_VERSION,
   validateSettings,
 } from "./settings-validation";
 
@@ -56,11 +60,31 @@ describe("settings validation", () => {
     });
   });
 
-  it("round-trips a valid Hearth backup", () => {
-    const backup = serializeSettingsBackup(validSettings);
-    expect(parseSettingsBackup(backup)).toMatchObject({
+  it("exports a versioned backup without the Home Assistant token", () => {
+    const backup = serializeSettingsBackup(
+      validSettings,
+      new Date("2026-09-07T12:00:00.000Z")
+    );
+    expect(backup).not.toContain("token");
+    expect(backup).not.toContain("haToken");
+
+    const parsed = parseSettingsBackup(backup);
+    expect(parsed).toMatchObject({
+      version: SETTINGS_BACKUP_VERSION,
+      legacy: false,
+      exportedAt: "2026-09-07T12:00:00.000Z",
+      pageCount: 1,
+      embeddedToken: null,
+      settings: { haUrl: "https://ha.example.com" },
+    });
+    expect(JSON.parse(backup)).toMatchObject({
+      format: SETTINGS_BACKUP_FORMAT,
+      version: SETTINGS_BACKUP_VERSION,
+    });
+
+    expect(restoreSettingsBackup(parsed, " current-token ")).toMatchObject({
       haUrl: "https://ha.example.com",
-      haToken: "token",
+      haToken: "current-token",
     });
   });
 
@@ -79,9 +103,38 @@ describe("settings validation", () => {
       version: 0,
     });
 
-    expect(parseSettingsBackup(backup)).toMatchObject({
-      haUrl: "https://legacy.example.com",
-      pages: [{ icon: "LayoutDashboard" }],
+    const parsed = parseSettingsBackup(backup);
+    expect(parsed).toMatchObject({
+      legacy: true,
+      version: 0,
+      embeddedToken: "token",
+      settings: {
+        haUrl: "https://legacy.example.com",
+        pages: [{ icon: "LayoutDashboard" }],
+      },
+    });
+    expect(restoreSettingsBackup(parsed, "").haToken).toBe("token");
+    expect(restoreSettingsBackup(parsed, "saved-token").haToken).toBe(
+      "saved-token"
+    );
+  });
+
+  it("requires a token when restoring a safe backup on a new device", () => {
+    const parsed = parseSettingsBackup(serializeSettingsBackup(validSettings));
+
+    expect(() => restoreSettingsBackup(parsed, "")).toThrow(
+      "Enter a Home Assistant access token"
+    );
+    expect(restoreSettingsBackup(parsed, "", " restored-token ").haToken).toBe(
+      "restored-token"
+    );
+  });
+
+  it("keeps internal persistence separate from portable backups", () => {
+    const persisted = serializePersistedSettings(validSettings);
+    expect(JSON.parse(persisted)).toMatchObject({
+      state: { settings: { haToken: " token " } },
+      version: 0,
     });
   });
 
@@ -89,6 +142,16 @@ describe("settings validation", () => {
     expect(() => parseSettingsBackup('{"hello":"world"}')).toThrow(
       "not a Hearth settings backup"
     );
+    expect(() =>
+      parseSettingsBackup(
+        JSON.stringify({
+          format: SETTINGS_BACKUP_FORMAT,
+          version: 999,
+          exportedAt: new Date().toISOString(),
+          settings: {},
+        })
+      )
+    ).toThrow("backup version is not supported");
     expect(() =>
       parseSettingsBackup(
         JSON.stringify({

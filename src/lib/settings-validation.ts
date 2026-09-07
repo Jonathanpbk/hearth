@@ -210,7 +210,43 @@ export function validateSettings(input: unknown): SettingsValidationResult {
   };
 }
 
-export function parseSettingsBackup(text: string): Settings {
+export const SETTINGS_BACKUP_FORMAT = "hearth-settings-backup";
+export const SETTINGS_BACKUP_VERSION = 1;
+
+export type SettingsWithoutToken = Omit<Settings, "haToken">;
+
+export interface ParsedSettingsBackup {
+  settings: SettingsWithoutToken;
+  embeddedToken: string | null;
+  exportedAt: string | null;
+  version: number;
+  legacy: boolean;
+  pageCount: number;
+  cardCount: number;
+}
+
+function withoutToken(settings: Settings): SettingsWithoutToken {
+  const safeSettings: Partial<Settings> = { ...settings };
+  delete safeSettings.haToken;
+  return safeSettings as SettingsWithoutToken;
+}
+
+function backupSummary(
+  settings: SettingsWithoutToken,
+  metadata: Pick<
+    ParsedSettingsBackup,
+    "embeddedToken" | "exportedAt" | "version" | "legacy"
+  >
+): ParsedSettingsBackup {
+  return {
+    settings,
+    ...metadata,
+    pageCount: settings.pages.length,
+    cardCount: settings.pages.reduce((total, page) => total + page.cards.length, 0),
+  };
+}
+
+export function parseSettingsBackup(text: string): ParsedSettingsBackup {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -218,7 +254,41 @@ export function parseSettingsBackup(text: string): Settings {
     throw new Error("The selected file is not valid JSON.");
   }
 
-  if (!isRecord(parsed) || !isRecord(parsed.state) || !isRecord(parsed.state.settings)) {
+  if (!isRecord(parsed)) {
+    throw new Error("The selected file is not a Hearth settings backup.");
+  }
+
+  if (parsed.format === SETTINGS_BACKUP_FORMAT) {
+    if (parsed.version !== SETTINGS_BACKUP_VERSION) {
+      throw new Error("This Hearth backup version is not supported.");
+    }
+    if (!isRecord(parsed.settings)) {
+      throw new Error("The selected file is not a Hearth settings backup.");
+    }
+    if (
+      typeof parsed.exportedAt !== "string" ||
+      Number.isNaN(Date.parse(parsed.exportedAt))
+    ) {
+      throw new Error("The backup export date is invalid.");
+    }
+
+    const result = validateSettings({
+      ...parsed.settings,
+      haToken: "hearth-backup-validation-token",
+    });
+    if (!result.settings) {
+      throw new Error(Object.values(result.errors)[0] ?? "The backup is invalid.");
+    }
+
+    return backupSummary(withoutToken(result.settings), {
+      embeddedToken: null,
+      exportedAt: parsed.exportedAt,
+      version: SETTINGS_BACKUP_VERSION,
+      legacy: false,
+    });
+  }
+
+  if (!isRecord(parsed.state) || !isRecord(parsed.state.settings)) {
     throw new Error("The selected file is not a Hearth settings backup.");
   }
 
@@ -236,9 +306,54 @@ export function parseSettingsBackup(text: string): Settings {
   if (!result.settings) {
     throw new Error(Object.values(result.errors)[0] ?? "The backup is invalid.");
   }
+
+  return backupSummary(withoutToken(result.settings), {
+    embeddedToken: result.settings.haToken || null,
+    exportedAt: null,
+    version: 0,
+    legacy: true,
+  });
+}
+
+export function restoreSettingsBackup(
+  backup: ParsedSettingsBackup,
+  currentToken: string,
+  suppliedToken = ""
+): Settings {
+  const token =
+    currentToken.trim() || backup.embeddedToken?.trim() || suppliedToken.trim();
+  if (!token) {
+    throw new Error("Enter a Home Assistant access token to restore this backup.");
+  }
+
+  const result = validateSettings({ ...backup.settings, haToken: token });
+  if (!result.settings) {
+    throw new Error(Object.values(result.errors)[0] ?? "The backup is invalid.");
+  }
   return result.settings;
 }
 
-export function serializeSettingsBackup(settings: Settings): string {
+export function serializeSettingsBackup(
+  settings: Settings,
+  exportedAt = new Date()
+): string {
+  const result = validateSettings(settings);
+  if (!result.settings) {
+    throw new Error("Current settings are invalid and cannot be exported.");
+  }
+
+  return JSON.stringify(
+    {
+      format: SETTINGS_BACKUP_FORMAT,
+      version: SETTINGS_BACKUP_VERSION,
+      exportedAt: exportedAt.toISOString(),
+      settings: withoutToken(result.settings),
+    },
+    null,
+    2
+  );
+}
+
+export function serializePersistedSettings(settings: Settings): string {
   return JSON.stringify({ state: { settings }, version: 0 });
 }

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Download, type Page } from "@playwright/test";
 import {
   type DisplayMock,
   installHearthTestHarness,
@@ -39,6 +39,15 @@ async function emitCameraEvent(page: Page, data: unknown): Promise<number> {
     },
     { eventType: CAMERA_EVENT, eventData: data }
   );
+}
+
+async function readDownload(download: Download): Promise<string> {
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 test.beforeEach(async ({ page }) => {
@@ -525,6 +534,93 @@ test("settings reject invalid saves and imports", async ({ page }) => {
   await expect(
     page.getByText("The selected file is not a Hearth settings backup.")
   ).toBeVisible();
+});
+
+test("settings exports token-free backups and previews safe restores", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  const exportStarted = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export" }).click();
+  const exported = await readDownload(await exportStarted);
+  const backup = JSON.parse(exported) as {
+    format: string;
+    version: number;
+    settings: Record<string, unknown>;
+  };
+
+  expect(exported).not.toContain("test-token");
+  expect(exported).not.toContain("haToken");
+  expect(backup).toMatchObject({
+    format: "hearth-settings-backup",
+    version: 1,
+  });
+
+  backup.settings.clockFormat = "12h";
+  await page.getByLabel("Import settings file").setInputFiles({
+    name: "hearth-settings-safe.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(backup)),
+  });
+
+  const preview = page.getByRole("dialog", { name: "Review backup" });
+  await expect(preview).toBeVisible();
+  await expect(preview.getByText("Version 1", { exact: true })).toBeVisible();
+  await expect(
+    preview.getByText("Keep token from this device", { exact: true })
+  ).toBeVisible();
+
+  const recoveryStarted = page.waitForEvent("download");
+  const restoredOnCurrentDevice = page.waitForEvent("load");
+  await preview.getByRole("button", { name: "Import backup" }).click();
+  const recovery = await readDownload(await recoveryStarted);
+  await restoredOnCurrentDevice;
+  expect(recovery).not.toContain("test-token");
+  expect(recovery).not.toContain("haToken");
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const saved = JSON.parse(
+          localStorage.getItem("hearth-settings") ?? "{}"
+        ) as { state?: { settings?: { haToken?: string; clockFormat?: string } } };
+        return saved.state?.settings;
+      })
+    )
+    .toMatchObject({ haToken: "test-token", clockFormat: "12h" });
+
+  await page.evaluate(() => localStorage.removeItem("hearth-settings"));
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+
+  await page.getByLabel("Import settings file").setInputFiles({
+    name: "hearth-settings-new-device.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(backup)),
+  });
+
+  const newDevicePreview = page.getByRole("dialog", { name: "Review backup" });
+  await expect(
+    newDevicePreview.getByText("Token required", { exact: true })
+  ).toBeVisible();
+  await newDevicePreview
+    .getByLabel("Home Assistant access token")
+    .fill("new-device-token");
+
+  const restoredOnNewDevice = page.waitForEvent("load");
+  await newDevicePreview.getByRole("button", { name: "Import backup" }).click();
+  await restoredOnNewDevice;
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const saved = JSON.parse(
+          localStorage.getItem("hearth-settings") ?? "{}"
+        ) as { state?: { settings?: { haToken?: string } } };
+        return saved.state?.settings?.haToken;
+      })
+    )
+    .toBe("new-device-token");
 });
 
 test("camera events validate payloads and reset the overlay timer", async ({ page }) => {
