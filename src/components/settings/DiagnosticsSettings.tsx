@@ -13,6 +13,7 @@ import {
   fetchLatestPwaVersion,
   getInstalledPwaVersion,
 } from "../../lib/pwa-update";
+import { installedRelease, shortCommit } from "../../lib/release";
 
 type CopyState = "idle" | "copied" | "error";
 
@@ -97,6 +98,8 @@ export function DiagnosticsSettings() {
     () =>
       createDiagnosticsReport({
         settings,
+        releaseVersion: installedRelease.version,
+        buildCommit: installedRelease.commit,
         installedBuild,
         latestBuild,
         serviceWorkerStatus,
@@ -154,6 +157,14 @@ export function DiagnosticsSettings() {
       </p>
       <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-4">
         <div className="grid gap-2.5">
+          <DiagnosticRow
+            name="Release"
+            value={`v${installedRelease.version}`}
+          />
+          <DiagnosticRow
+            name="Build commit"
+            value={shortCommit(installedRelease.commit)}
+          />
           <DiagnosticRow name="Installed build" value={shortVersion(installedBuild)} />
           <DiagnosticRow name="Latest build" value={shortVersion(latestBuild)} />
           <DiagnosticRow name="Build status" value={buildState} />

@@ -8,6 +8,8 @@ node_modules/
 
 # Build output
 dist/
+playwright-report/
+test-results/
 
 # Claude Code (may contain tokens)
 .claude/

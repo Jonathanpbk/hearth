@@ -15,6 +15,8 @@ function reportInput() {
       cameraEnabled: true,
       go2rtcUrl: "https://private-camera.example.test",
     },
+    releaseVersion: "1.0.0",
+    buildCommit: "0123456789abcdef",
     installedBuild: "assets/index-current.js",
     latestBuild: "assets/index-latest.js",
     serviceWorkerStatus: "active" as const,
@@ -45,6 +47,10 @@ describe("diagnostics report", () => {
     expect(report).toMatchObject({
       reportVersion: 1,
       generatedAt: "2026-09-07T12:00:00.000Z",
+      hearth: {
+        releaseVersion: "1.0.0",
+        buildCommit: "0123456789abcdef",
+      },
       configuration: {
         homeAssistantConfigured: true,
         cameraEnabled: true,

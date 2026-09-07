@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate release metadata
+        run: npm run release:check
+
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=moderate
 
@@ -44,14 +47,20 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          HEARTH_BUILD_SHA: ${{ github.sha }}
 
       - name: Verify production security headers
         run: |
-          docker build -t hearth-ci .
+          docker build --build-arg HEARTH_BUILD_SHA="$GITHUB_SHA" -t hearth-ci .
           docker run -d --name hearth-ci -p 127.0.0.1:8080:80 hearth-ci
           trap 'docker rm -f hearth-ci' EXIT
           docker exec hearth-ci nginx -t
-          curl --retry 10 --retry-all-errors --retry-delay 1 -fsS -o /dev/null http://127.0.0.1:8080/
+          curl --retry 10 --retry-all-errors --retry-delay 1 -fsS http://127.0.0.1:8080/healthz | grep -q '"status":"ok"'
+          docker inspect hearth-ci --format '{{json .Config.Healthcheck.Test}}' | grep -q '/healthz'
+          curl -fsS http://127.0.0.1:8080/api/version.json | tee /tmp/hearth-version
+          grep -q '"schemaVersion":1' /tmp/hearth-version
+          grep -q "\"commit\":\"$GITHUB_SHA\"" /tmp/hearth-version
           curl -fsSI http://127.0.0.1:8080/ | tee /tmp/hearth-headers
           grep -qi '^Content-Security-Policy:' /tmp/hearth-headers
           grep -qi '^Permissions-Policy:' /tmp/hearth-headers

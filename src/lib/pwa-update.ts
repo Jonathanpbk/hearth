@@ -1,4 +1,7 @@
 export interface PwaVersionInfo {
+  schemaVersion: 1;
+  release: string;
+  commit: string;
   version: string;
 }
 
@@ -29,10 +32,23 @@ export async function fetchLatestPwaVersion(): Promise<PwaVersionInfo> {
   }
 
   const result = await response.json() as Partial<PwaVersionInfo>;
-  if (typeof result.version !== "string" || !result.version) {
+  if (
+    result.schemaVersion !== 1 ||
+    typeof result.release !== "string" ||
+    !result.release ||
+    typeof result.commit !== "string" ||
+    !result.commit ||
+    typeof result.version !== "string" ||
+    !result.version
+  ) {
     throw new Error("Version response is invalid");
   }
-  return { version: result.version };
+  return {
+    schemaVersion: 1,
+    release: result.release,
+    commit: result.commit,
+    version: result.version,
+  };
 }
 
 export async function replacePwaCaches(): Promise<void> {
