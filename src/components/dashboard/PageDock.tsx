@@ -1,9 +1,14 @@
-import { useState, useRef, useEffect, Fragment } from "react";
+import { lazy, Suspense, useState, useRef, useEffect, Fragment } from "react";
 import { Plus, X, Pencil } from "lucide-react";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDashboardStore } from "../../store/useDashboardStore";
 import { DynamicIcon } from "../DynamicIcon";
-import { PageSettingsModal } from "./PageSettingsModal";
+
+const PageSettingsModal = lazy(() =>
+  import("./PageSettingsModal").then((module) => ({
+    default: module.PageSettingsModal,
+  }))
+);
 
 export function PageDock() {
   const persistedPages = useSettingsStore((s) => s.settings.pages);
@@ -120,13 +125,15 @@ export function PageDock() {
     <>
       {/* Page settings modal */}
       {editingPage && (
-        <PageSettingsModal
-          page={editingPage}
-          canDelete={pages.length > 1}
-          onSave={(name, icon) => handleSavePageMeta(editingPage.id, name, icon)}
-          onDelete={() => handleDeletePage(editingPage.id)}
-          onClose={() => setEditingPageId(null)}
-        />
+        <Suspense fallback={null}>
+          <PageSettingsModal
+            page={editingPage}
+            canDelete={pages.length > 1}
+            onSave={(name, icon) => handleSavePageMeta(editingPage.id, name, icon)}
+            onDelete={() => handleDeletePage(editingPage.id)}
+            onClose={() => setEditingPageId(null)}
+          />
+        </Suspense>
       )}
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-none">

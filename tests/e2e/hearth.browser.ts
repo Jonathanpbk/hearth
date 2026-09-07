@@ -269,6 +269,9 @@ test("auto-dim pauses while hidden and consumes the wake tap", async ({ page }) 
 });
 
 test("lazy routes, dialogs, and sensor history load", async ({ page }) => {
+  await expect(page.locator('[data-dashboard-grid="view"]')).toBeVisible();
+  await expect(page.locator(".react-grid-item")).toHaveCount(0);
+
   await page.getByText("Test Temperature", { exact: true }).first().click();
   await expect(page.locator(".recharts-responsive-container")).toBeVisible();
 
@@ -278,6 +281,8 @@ test("lazy routes, dialogs, and sensor history load", async ({ page }) => {
 
   await page.getByRole("button", { name: "Back to dashboard" }).click();
   await page.getByRole("button", { name: "Edit dashboard" }).click();
+  await expect(page.locator('[data-dashboard-grid="edit"]')).toBeVisible();
+  await expect(page.locator(".react-grid-item")).toHaveCount(4);
   await page.getByRole("button", { name: "Add Card" }).click();
   const addHeading = page.getByRole("heading", { name: "Add Card" });
   await expect(addHeading).toBeVisible();
@@ -316,7 +321,7 @@ test("dashboard edits save or cancel as one transaction", async ({ page }) => {
 
 test("card deletion requires confirmation and supports undo", async ({ page }) => {
   await page.getByRole("button", { name: "Edit dashboard" }).click();
-  const cards = page.locator(".react-grid-item");
+  const cards = page.locator("[data-dashboard-card]");
   await expect(cards).toHaveCount(4);
 
   let confirmation = "";
@@ -333,6 +338,7 @@ test("card deletion requires confirmation and supports undo", async ({ page }) =
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(cards).toHaveCount(4);
   await page.getByRole("button", { name: "Cancel dashboard changes" }).click();
+  await expect(page.locator('[data-dashboard-grid="view"]')).toBeVisible();
   await expect(cards).toHaveCount(4);
 });
 
