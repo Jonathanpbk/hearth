@@ -5,6 +5,7 @@ import {
   type Connection,
 } from "home-assistant-js-websocket";
 import { useEntityStore } from "../store/useEntityStore";
+import { useDiagnosticsStore } from "../store/useDiagnosticsStore";
 import {
   HA_RECONNECT_GRACE_MS,
   HA_RETRY_DELAYS_MS,
@@ -59,6 +60,14 @@ function setDisconnected(): void {
   useEntityStore.getState().setConnectionStatus("disconnected");
 }
 
+function setConnected(): void {
+  const entityStore = useEntityStore.getState();
+  if (entityStore.connectionStatus !== "connected") {
+    useDiagnosticsStore.getState().recordHaConnected();
+  }
+  entityStore.setConnectionStatus("connected");
+}
+
 function startNewLifecycle(config: ConnectionConfig): void {
   lifecycleId += 1;
   clearRetryTimer();
@@ -94,6 +103,7 @@ function attachConnectionListeners(
 ): () => void {
   const handleDisconnected = () => {
     if (id !== lifecycleId || connection !== activeConnection) return;
+    useDiagnosticsStore.getState().recordHaDisconnected();
     setDisconnected();
     scheduleRetry(id, config, HA_RECONNECT_GRACE_MS);
   };
@@ -102,7 +112,7 @@ function attachConnectionListeners(
     if (id !== lifecycleId || connection !== activeConnection) return;
     clearRetryTimer();
     retryAttempt = 0;
-    useEntityStore.getState().setConnectionStatus("connected");
+    setConnected();
   };
 
   connection.addEventListener("disconnected", handleDisconnected);
@@ -130,7 +140,7 @@ async function connect(id: number, config: ConnectionConfig): Promise<void> {
     unsubscribeEntities = subscribeEntities(connection, (entities) => {
       if (id === lifecycleId && connection === activeConnection) {
         useEntityStore.getState().setEntities(entities);
-        useEntityStore.getState().setConnectionStatus("connected");
+        setConnected();
       }
     });
     removeConnectionListeners = attachConnectionListeners(connection, config, id);
@@ -140,6 +150,7 @@ async function connect(id: number, config: ConnectionConfig): Promise<void> {
     if (activeConnection === connection) activeConnection = null;
     if (id !== lifecycleId) return;
 
+    useDiagnosticsStore.getState().recordHaDisconnected();
     setDisconnected();
     scheduleRetry(id, config);
   }

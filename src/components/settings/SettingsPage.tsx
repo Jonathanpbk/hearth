@@ -7,6 +7,7 @@ import { ConnectionSettings } from "./ConnectionSettings";
 import { CameraSettings } from "./CameraSettings";
 import { DisplaySettings } from "./DisplaySettings";
 import { PWAUpdateSettings } from "./PWAUpdateSettings";
+import { DiagnosticsSettings } from "./DiagnosticsSettings";
 import {
   parseSettingsBackup,
   serializeSettingsBackup,
@@ -157,6 +158,8 @@ export function SettingsPage() {
         )}
 
         <PWAUpdateSettings onBeforeUpdate={() => Boolean(saveForm())} />
+
+        <DiagnosticsSettings />
 
         {/* Export / Import */}
         <div className="pt-4 border-t border-white/[0.06]">

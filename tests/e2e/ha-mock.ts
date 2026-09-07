@@ -160,6 +160,7 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
 
       const browserWindow = window as unknown as {
         __haMessages: MockMessage[];
+        __copiedDiagnostics: string;
         __displayMock: DisplayMock;
         __haMock: {
           disconnect: () => void;
@@ -169,6 +170,16 @@ export async function installHearthTestHarness(page: Page): Promise<void> {
         };
       };
       browserWindow.__haMessages = [];
+      browserWindow.__copiedDiagnostics = "";
+
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          async writeText(text: string) {
+            browserWindow.__copiedDiagnostics = text;
+          },
+        },
+      });
 
       let visibilityState: DocumentVisibilityState = "visible";
       let wakeLockRequests = 0;

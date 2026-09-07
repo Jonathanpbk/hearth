@@ -5,15 +5,24 @@ import {
   requestWakeLock,
   releaseWakeLock,
 } from "../lib/wakeLock";
+import { useDiagnosticsStore } from "../store/useDiagnosticsStore";
 
 export function useWakeLock(): void {
   const wakeLockEnabled = useSettingsStore((s) => s.settings.wakeLockEnabled);
   const sentinelRef = useRef<WakeLockSentinel | null>(null);
 
   useEffect(() => {
+    const setWakeLockStatus = useDiagnosticsStore.getState().setWakeLockStatus;
+
     if (!wakeLockEnabled) {
       releaseWakeLock(sentinelRef.current);
       sentinelRef.current = null;
+      setWakeLockStatus("disabled");
+      return;
+    }
+
+    if (!("wakeLock" in navigator)) {
+      setWakeLockStatus("unsupported");
       return;
     }
 
@@ -44,6 +53,7 @@ export function useWakeLock(): void {
 
       const delay = getWakeLockRetryDelay(retryAttempt);
       retryAttempt += 1;
+      setWakeLockStatus("retrying");
       retryTimer = setTimeout(() => {
         retryTimer = null;
         void acquire();
@@ -54,6 +64,7 @@ export function useWakeLock(): void {
       const released = event.currentTarget as WakeLockSentinel;
       released.removeEventListener("release", handleRelease);
       if (sentinelRef.current === released) sentinelRef.current = null;
+      setWakeLockStatus("retrying");
       scheduleRetry();
     }
 
@@ -69,11 +80,13 @@ export function useWakeLock(): void {
 
       clearRetry();
       requestInFlight = true;
+      setWakeLockStatus("requesting");
       const acquired = await requestWakeLock();
       requestInFlight = false;
 
       if (!active || !isVisible()) {
         releaseWakeLock(acquired);
+        if (active) setWakeLockStatus("paused");
         return;
       }
 
@@ -84,6 +97,7 @@ export function useWakeLock(): void {
 
       retryAttempt = 0;
       sentinelRef.current = acquired;
+      setWakeLockStatus("active");
       acquired.addEventListener("release", handleRelease);
     }
 
@@ -96,6 +110,7 @@ export function useWakeLock(): void {
         sentinelRef.current = null;
         sentinel?.removeEventListener("release", handleRelease);
         releaseWakeLock(sentinel);
+        setWakeLockStatus("paused");
         return;
       }
 

@@ -3,6 +3,7 @@ import { startWebRTCStream } from "../../lib/webrtc";
 import { startMSEStream, stopMSEStream } from "../../lib/mse";
 import type { WebRTCSession } from "../../lib/webrtc";
 import type { StreamMode } from "../../store/useCameraStore";
+import { useDiagnosticsStore } from "../../store/useDiagnosticsStore";
 
 interface Props {
   go2rtcUrl: string;
@@ -28,7 +29,9 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
     let cancelled = false;
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
     let removeConnectionListener: (() => void) | null = null;
+    const diagnostics = useDiagnosticsStore.getState();
     setVideoState("connecting");
+    diagnostics.beginCameraPlayback(mode);
 
     function clearFallbackTimer() {
       if (!fallbackTimer) return;
@@ -52,6 +55,11 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
       clearFallbackTimer();
       if (stopPrimary) stopPrimaryStream();
       setVideoState("fallback");
+      useDiagnosticsStore
+        .getState()
+        .recordCameraFallback(
+          `${mode.toUpperCase()} playback failed. Using MJPEG fallback.`
+        );
     }
 
     function scheduleFallback(delay: number) {
@@ -63,6 +71,7 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
       if (cancelled) return;
       clearFallbackTimer();
       setVideoState("playing");
+      useDiagnosticsStore.getState().recordCameraPlaying(mode);
     }
 
     function handleVideoError() {
@@ -124,6 +133,7 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
       video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("error", handleVideoError);
       stopPrimaryStream();
+      useDiagnosticsStore.getState().clearCameraPlayback();
     };
   }, [go2rtcUrl, streamName, mode]);
 
@@ -149,7 +159,15 @@ export function WebRTCVideo({ go2rtcUrl, streamName, mode }: Props) {
         <img
           src={mjpegSrc}
           alt={streamName}
-          onError={() => setVideoState("error")}
+          onLoad={() =>
+            useDiagnosticsStore.getState().recordCameraPlaying("mjpeg")
+          }
+          onError={() => {
+            setVideoState("error");
+            useDiagnosticsStore
+              .getState()
+              .recordCameraError("MJPEG fallback failed to load.");
+          }}
           className="absolute inset-0 w-full h-full object-contain"
         />
       )}
