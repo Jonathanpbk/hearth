@@ -8,6 +8,7 @@ import {
 interface TestWindow extends Window {
   __displayMock: DisplayMock;
   __haMessages: MockMessage[];
+  __copiedDiagnostics: string;
   __haMock: {
     disconnect: () => void;
     reconnect: () => void;
@@ -408,6 +409,37 @@ test("settings reports the installed PWA build", async ({ page }) => {
 
   await expect(page.getByRole("status")).toHaveText("Hearth is up to date.");
   await expect(page.getByText("Unknown", { exact: true })).toHaveCount(0);
+});
+
+test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  await expect(page.getByText("Diagnostics", { exact: true })).toBeVisible();
+  await expect(page.getByText("Connected", { exact: true })).toBeVisible();
+  await expect(page.getByText("Active", { exact: true })).toBeVisible();
+  await expect(page.getByText("Up to date", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Copy diagnostics" }).click();
+  await expect(
+    page.getByRole("button", { name: "Diagnostics copied" })
+  ).toBeVisible();
+
+  const copied = await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    return testWindow.__copiedDiagnostics;
+  });
+  const report = JSON.parse(copied) as {
+    configuration: Record<string, unknown>;
+    homeAssistant: { connectionStatus: string };
+    display: { wakeLockStatus: string };
+  };
+
+  expect(copied).not.toContain("test-token");
+  expect(copied).not.toContain("127.0.0.1:4173");
+  expect(copied).not.toContain("go2rtc.test");
+  expect(report.configuration.homeAssistantConfigured).toBe(true);
+  expect(report.homeAssistant.connectionStatus).toBe("connected");
+  expect(report.display.wakeLockStatus).toBe("active");
 });
 
 test("settings reject invalid saves and imports", async ({ page }) => {

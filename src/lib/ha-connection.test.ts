@@ -12,6 +12,7 @@ import {
   stopConnection,
 } from "./ha-connection";
 import { useEntityStore } from "../store/useEntityStore";
+import { useDiagnosticsStore } from "../store/useDiagnosticsStore";
 
 vi.mock("home-assistant-js-websocket", () => ({
   createConnection: vi.fn(),
@@ -84,6 +85,13 @@ beforeEach(() => {
     hasLoadedEntities: false,
     connectionStatus: "disconnected",
   });
+  useDiagnosticsStore.setState({
+    lastHaConnectedAt: null,
+    lastHaDisconnectedAt: null,
+    haReconnectCount: 0,
+    hasConnectedOnce: false,
+    awaitingReconnect: false,
+  });
 });
 
 afterEach(() => {
@@ -107,6 +115,8 @@ describe("Home Assistant connection lifecycle", () => {
   });
 
   it("waits for the first entity snapshot before reporting connected", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime("2026-09-07T12:00:00.000Z");
     const connection = makeConnection();
     let publishEntities: ((entities: HassEntities) => void) | undefined;
     createConnectionMock.mockResolvedValue(connection.connection);
@@ -124,6 +134,15 @@ describe("Home Assistant connection lifecycle", () => {
 
     expect(useEntityStore.getState().connectionStatus).toBe("connected");
     expect(useEntityStore.getState().hasLoadedEntities).toBe(true);
+    expect(useDiagnosticsStore.getState().lastHaConnectedAt).toBe(
+      Date.parse("2026-09-07T12:00:00.000Z")
+    );
+
+    vi.setSystemTime("2026-09-07T12:05:00.000Z");
+    publishEntities?.({});
+    expect(useDiagnosticsStore.getState().lastHaConnectedAt).toBe(
+      Date.parse("2026-09-07T12:00:00.000Z")
+    );
   });
 
   it("retries after an initial connection failure", async () => {
