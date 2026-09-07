@@ -1,23 +1,109 @@
-import * as LucideIcons from "lucide-react";
-import { HelpCircle } from "lucide-react";
-import type { LucideProps } from "lucide-react";
+import {
+  Baby,
+  Bath,
+  Bed,
+  BedDouble,
+  Bell,
+  Briefcase,
+  Calendar,
+  Camera,
+  Car,
+  CircleHelp,
+  Clapperboard,
+  Clock,
+  CloudSun,
+  CookingPot,
+  Dog,
+  DoorOpen,
+  Fan,
+  Flower2,
+  Gamepad2,
+  Heart,
+  Home,
+  House,
+  Lamp,
+  LayoutDashboard,
+  Lightbulb,
+  Monitor,
+  Moon,
+  Music,
+  PawPrint,
+  Plug,
+  Power,
+  Settings,
+  Shield,
+  Sofa,
+  Star,
+  Sun,
+  Thermometer,
+  Trees,
+  Tv,
+  Utensils,
+  Users,
+  Warehouse,
+  WashingMachine,
+  Zap,
+  type LucideIcon,
+  type LucideProps,
+} from "lucide-react";
+
+const PAGE_ICONS: Record<string, LucideIcon> = {
+  Baby,
+  Bath,
+  Bed,
+  BedDouble,
+  Bell,
+  Briefcase,
+  Calendar,
+  Camera,
+  Car,
+  CircleHelp,
+  Clapperboard,
+  Clock,
+  CloudSun,
+  CookingPot,
+  Dog,
+  DoorOpen,
+  Fan,
+  Flower2,
+  Gamepad2,
+  Heart,
+  Home,
+  House,
+  Lamp,
+  LayoutDashboard,
+  Lightbulb,
+  Monitor,
+  Moon,
+  Music,
+  PawPrint,
+  Plug,
+  Power,
+  Settings,
+  Shield,
+  Sofa,
+  Star,
+  Sun,
+  Thermometer,
+  Trees,
+  Tv,
+  Utensils,
+  Users,
+  Warehouse,
+  WashingMachine,
+  Zap,
+};
+
+export const PAGE_ICON_NAMES = Object.keys(PAGE_ICONS);
 
 function toIconName(name: string): string {
   return name
     .split("-")
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join("");
 }
 
 export function DynamicIcon({ name, ...props }: { name: string } & LucideProps) {
-  const iconName = name ? toIconName(name) : "";
-  const entry = iconName ? (LucideIcons as Record<string, unknown>)[iconName] : undefined;
-  const isValid =
-    entry != null &&
-    (typeof entry === "function" ||
-      (typeof entry === "object" && "render" in (entry as object)));
-  const Icon = isValid ? (entry as React.ComponentType<LucideProps>) : undefined;
-
-  if (!Icon) return <HelpCircle {...props} />;
+  const Icon = PAGE_ICONS[toIconName(name)] ?? CircleHelp;
   return <Icon {...props} />;
 }

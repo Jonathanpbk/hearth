@@ -18,6 +18,11 @@ const EditCardModal = lazy(() =>
     default: module.EditCardModal,
   }))
 );
+const EditableDashboardGrid = lazy(() =>
+  import("../components/dashboard/EditableDashboardGrid").then((module) => ({
+    default: module.EditableDashboardGrid,
+  }))
+);
 
 export function DashboardView() {
   const persistedPages = useSettingsStore((s) => s.settings.pages);
@@ -97,15 +102,26 @@ export function DashboardView() {
         <div className="h-full overflow-y-auto pb-16">
           {!currentPage || currentPage.cards.length === 0 ? (
             <EmptyPage editMode={editMode} onAddCard={() => setAddCardOpen(true)} />
+          ) : editMode ? (
+            <Suspense
+              fallback={
+                <DashboardGrid cards={currentPage.cards} layout={currentPage.layout} />
+              }
+            >
+              <EditableDashboardGrid
+                key={`${currentPage.id}:edit`}
+                cards={currentPage.cards}
+                layout={currentPage.layout}
+                onLayoutChange={(layout) => updateLayout(currentPage.id, layout)}
+                onEditCard={setEditingCard}
+                onDeleteCard={handleDeleteCard}
+              />
+            </Suspense>
           ) : (
             <DashboardGrid
-              key={`${currentPage.id}:${editMode ? "edit" : "view"}`}
+              key={`${currentPage.id}:view`}
               cards={currentPage.cards}
               layout={currentPage.layout}
-              editMode={editMode}
-              onLayoutChange={(layout) => updateLayout(currentPage.id, layout)}
-              onEditCard={setEditingCard}
-              onDeleteCard={handleDeleteCard}
             />
           )}
         </div>
