@@ -39,7 +39,11 @@ export function DashboardGrid({ cards, layout }: Props) {
         if (!item) return null;
 
         return (
-          <div key={card.id} style={getDashboardItemPlacement(item)}>
+          <div
+            key={card.id}
+            data-dashboard-card={card.id}
+            style={getDashboardItemPlacement(item)}
+          >
             <DashboardCard card={card} />
           </div>
         );

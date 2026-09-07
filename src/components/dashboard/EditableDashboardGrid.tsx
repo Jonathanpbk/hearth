@@ -116,7 +116,11 @@ export function EditableDashboardGrid({
         onResizeStop={handleInteractionStop}
       >
         {cards.map((card) => (
-          <div key={card.id} style={{ height: "100%", background: "transparent" }}>
+          <div
+            key={card.id}
+            data-dashboard-card={card.id}
+            style={{ height: "100%", background: "transparent" }}
+          >
             <CardWrapper
               editMode
               onEdit={() => onEditCard(card)}
