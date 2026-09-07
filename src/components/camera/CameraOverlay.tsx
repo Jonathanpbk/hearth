@@ -4,6 +4,7 @@ import { useCameraStore } from "../../store/useCameraStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDimStore } from "../../store/useDimStore";
 import { WebRTCVideo } from "./WebRTCVideo";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 export function CameraOverlay() {
   const visible = useCameraStore((s) => s.visible);
@@ -16,6 +17,7 @@ export function CameraOverlay() {
 
   const undim = useDimStore((s) => s.undim);
   const progressRef = useRef<HTMLDivElement>(null);
+  const { dialogRef } = useDialogFocus(visible, dismiss);
 
   // Undim screen when camera appears so the overlay is fully visible.
   useEffect(() => {
@@ -50,6 +52,7 @@ export function CameraOverlay() {
     // Always in the DOM so mounting never causes layout shifts.
     // Visibility is controlled via opacity + pointer-events.
     <div
+      ref={dialogRef}
       role="dialog"
       aria-label="Camera overlay"
       aria-modal={visible ? true : undefined}
@@ -73,8 +76,9 @@ export function CameraOverlay() {
 
       {/* Dismiss button */}
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); dismiss(); }}
-        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+        className="absolute top-4 right-4 h-11 w-11 inline-flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
         aria-label="Close camera"
       >
         <X className="h-5 w-5 text-white" />

@@ -69,29 +69,34 @@ export function Header() {
         {/* Quick-action megaphone */}
         <div ref={menuRef} className="relative">
           <button
+            type="button"
             onClick={() => setMenuOpen((o) => !o)}
             disabled={connectionStatus !== "connected"}
-            className={`p-1.5 rounded-lg transition-colors ${
+            className={`h-11 w-11 inline-flex items-center justify-center rounded-lg transition-colors ${
               menuOpen
                 ? "bg-[#ffc174]/15 text-[#ffc174]"
                 : "text-white/40 hover:text-white/70 hover:bg-white/[0.06]"
             } disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none`}
             aria-label="Quick actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
           >
             <Megaphone className="h-4 w-4" />
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[160px] rounded-xl border border-white/[0.08] shadow-xl overflow-hidden"
+            <div role="menu" className="absolute right-0 top-full mt-1.5 z-50 min-w-[160px] rounded-xl border border-white/[0.08] shadow-xl overflow-hidden"
               style={{ background: "#3a3a3c" }}>
               {QUICK_ACTIONS.map(({ label, entityId }) => {
                 const blockReason = getEntityBlockReason(entities[entityId], connectionStatus);
                 return (
                   <button
+                    type="button"
                     key={entityId}
                     onClick={() => runQuickAction(entityId, label)}
                     disabled={Boolean(blockReason)}
                     title={blockReason ?? undefined}
+                    role="menuitem"
                     className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
                   >
                     {label}
@@ -110,7 +115,7 @@ export function Header() {
             <button
               type="button"
               onClick={discardEdit}
-              className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="h-11 w-11 inline-flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
               aria-label="Cancel dashboard changes"
             >
               <X className="h-4 w-4" />
@@ -118,7 +123,7 @@ export function Header() {
             <button
               type="button"
               onClick={saveDashboardChanges}
-              className="p-1.5 rounded-lg bg-[#ffc174]/15 text-[#ffc174] hover:bg-[#ffc174]/25 transition-colors"
+              className="h-11 w-11 inline-flex items-center justify-center rounded-lg bg-[#ffc174]/15 text-[#ffc174] hover:bg-[#ffc174]/25 transition-colors"
               aria-label="Save dashboard changes"
             >
               <Check className="h-4 w-4" />
@@ -128,7 +133,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => beginEdit(settings.pages)}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="h-11 w-11 inline-flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
             aria-label="Edit dashboard"
           >
             <Pencil className="h-4 w-4" />
@@ -137,8 +142,9 @@ export function Header() {
 
         {canInstall && (
           <button
+            type="button"
             onClick={() => void install()}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="h-11 w-11 inline-flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors"
             aria-label="Install app"
           >
             <Download className="h-4 w-4" />
@@ -149,7 +155,7 @@ export function Header() {
           type="button"
           onClick={() => navigate("/settings")}
           disabled={editMode}
-          className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors disabled:cursor-not-allowed disabled:opacity-30 disabled:pointer-events-none"
+          className="h-11 w-11 inline-flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors disabled:cursor-not-allowed disabled:opacity-30 disabled:pointer-events-none"
           aria-label="Settings"
         >
           <Settings className="h-4 w-4" />

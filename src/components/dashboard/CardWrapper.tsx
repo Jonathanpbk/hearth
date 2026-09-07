@@ -24,15 +24,17 @@ export function CardWrapper({ editMode, onEdit, onDelete, children }: Props) {
         <GripVertical className="h-4 w-4 text-white/40 drop-shadow pointer-events-none" />
         <div className="flex items-center gap-1 pointer-events-auto">
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm text-white/60 hover:text-white hover:bg-black/70 transition-colors"
+            className="h-11 w-11 inline-flex items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm text-white/60 hover:text-white hover:bg-black/70 transition-colors"
             aria-label="Edit card"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm text-white/60 hover:text-red-400 hover:bg-black/70 transition-colors"
+            className="h-11 w-11 inline-flex items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm text-white/60 hover:text-red-400 hover:bg-black/70 transition-colors"
             aria-label="Delete card"
           >
             <X className="h-3.5 w-3.5" />
