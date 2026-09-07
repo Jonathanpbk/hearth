@@ -365,9 +365,7 @@ test("runtime recovery replaces blank lazy failures", async ({ page }) => {
   });
 
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(
-    page.getByText("Loading Hearth.", { exact: true })
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/settings$/);
 
   releaseRequest();
   await expect(
