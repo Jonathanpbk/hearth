@@ -330,7 +330,7 @@ test("dialogs trap focus, close with Escape, and restore focus", async ({ page }
   await expect(closeButton).toBeFocused();
 
   await page.keyboard.press("Shift+Tab");
-  await expect(page.getByRole("button", { name: /Weather/ })).toBeFocused();
+  await expect(page.getByRole("button", { name: /^Weather\b/ })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(closeButton).toBeFocused();
 
