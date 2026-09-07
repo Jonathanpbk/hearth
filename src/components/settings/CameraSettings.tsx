@@ -36,15 +36,19 @@ function Toggle({
       aria-checked={value}
       aria-label={label}
       onClick={() => onChange(!value)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
-        value ? "bg-blue-500" : "bg-white/20"
-      }`}
+      className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-          value ? "translate-x-6" : "translate-x-1"
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
+          value ? "bg-blue-500" : "bg-white/20"
         }`}
-      />
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+            value ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </span>
     </button>
   );
 }

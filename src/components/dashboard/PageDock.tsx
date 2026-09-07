@@ -185,7 +185,7 @@ export function PageDock() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setEditingPageId(page.id); }}
-                    className="absolute -top-1 -left-1 h-4 w-4 rounded-full bg-[var(--color-surface-2)] border border-white/20 hover:bg-white/20 flex items-center justify-center transition-colors"
+                    className="absolute -top-3 -left-3 h-7 w-7 rounded-full bg-[var(--color-surface-2)] border border-white/20 hover:bg-white/20 flex items-center justify-center transition-colors"
                     aria-label={`Edit ${page.name}`}
                   >
                     <Pencil className="h-2.5 w-2.5 text-white/60" />
@@ -197,7 +197,7 @@ export function PageDock() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleDeletePage(page.id); }}
-                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-colors"
+                    className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-colors"
                     aria-label={`Delete ${page.name}`}
                   >
                     <X className="h-2.5 w-2.5 text-white" />
@@ -239,7 +239,7 @@ export function PageDock() {
               <button
                 type="button"
                 onClick={() => setAddingPage(true)}
-                className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                className="h-11 w-11 inline-flex items-center justify-center rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Add page"
               >
                 <Plus className="h-4 w-4" />

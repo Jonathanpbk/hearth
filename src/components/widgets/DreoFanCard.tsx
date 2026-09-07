@@ -37,7 +37,7 @@ function OscButton({
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       disabled={disabled}
       aria-label={label}
-      className={`flex-1 flex items-center justify-center py-2 rounded-xl border
+      className={`flex-1 min-h-11 flex items-center justify-center py-2 rounded-xl border
         transition-all duration-200 active:scale-95
         ${active
           ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
@@ -59,7 +59,7 @@ function PresetButton({
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       disabled={disabled}
       aria-label={label}
-      className="w-9 h-9 flex items-center justify-center rounded-xl border border-white/[0.08]
+      className="w-11 h-11 flex items-center justify-center rounded-xl border border-white/[0.08]
         bg-white/[0.04] text-white/50 hover:text-white hover:border-white/20
         transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
     >
@@ -95,7 +95,8 @@ function NumStepper({
         <button
           onClick={(e) => { e.stopPropagation(); adjust(-step); }}
           disabled={Boolean(blockReason)}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
+          aria-label={`Decrease ${label}`}
+          className="w-11 h-11 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
         >
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -103,7 +104,8 @@ function NumStepper({
         <button
           onClick={(e) => { e.stopPropagation(); adjust(step); }}
           disabled={Boolean(blockReason)}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
+          aria-label={`Increase ${label}`}
+          className="w-11 h-11 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
         >
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
@@ -152,7 +154,8 @@ function CustomOscButton() {
         onClick={() => setOpen((o) => !o)}
         disabled={Boolean(blockReason)}
         aria-label="Custom oscillation"
-        className={`w-full flex items-center justify-center py-2 rounded-xl border
+        aria-expanded={open}
+        className={`w-full min-h-11 flex items-center justify-center py-2 rounded-xl border
           transition-all duration-200 active:scale-95
           ${isActive || open
             ? "bg-[#ffc174]/15 border-[#ffc174]/40 text-[#ffc174]"
@@ -174,7 +177,7 @@ function CustomOscButton() {
           <button
             onClick={handleStartStop}
             disabled={Boolean(blockReason)}
-            className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-colors border
+            className={`w-full min-h-11 py-1.5 rounded-lg text-xs font-semibold transition-colors border
               ${isActive
                 ? "bg-[#ffc174]/20 text-[#ffc174] border-[#ffc174]/30"
                 : "bg-[#ffc174]/10 text-[#ffc174] border-[#ffc174]/20 hover:bg-[#ffc174]/20"
@@ -211,9 +214,13 @@ function ModeDropdown({ modes, value, onChange, disabled }: {
   return (
     <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         disabled={disabled}
-        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl border
+        aria-label="Fan mode"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`w-full min-h-11 flex items-center justify-between px-3 py-1.5 rounded-xl border
           text-sm transition-colors
           ${open
             ? "bg-[#ffc174]/10 border-[#ffc174]/30 text-[#ffc174]"
@@ -226,13 +233,18 @@ function ModeDropdown({ modes, value, onChange, disabled }: {
 
       {open && (
         <div
+          role="listbox"
+          aria-label="Fan mode"
           className="absolute bottom-full mb-1.5 left-0 right-0 z-50 rounded-xl border border-white/[0.08] shadow-xl overflow-hidden"
           style={{ background: "#3a3a3c" }}
         >
           {modes.map((m) => (
             <button
+              type="button"
               key={m}
               onClick={() => { onChange(m); setOpen(false); }}
+              role="option"
+              aria-selected={m === value}
               className={`w-full text-left px-4 py-2 text-sm transition-colors
                 ${m === value
                   ? "text-[#ffc174] bg-[#ffc174]/10"
@@ -369,7 +381,8 @@ export function DreoFanCard() {
             key={isOn ? `on-${level}` : "off"}
             disabled={!isOn || Boolean(blockReason)}
             className="disabled:pointer-events-none"
-            onChange={(e) => handleLevel(Number(e.target.value))}
+            aria-label="Fan speed"
+            onInput={(e) => handleLevel(Number(e.currentTarget.value))}
           />
         </div>
 

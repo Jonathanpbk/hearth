@@ -54,7 +54,7 @@ export function EditCardModal({ card, pageId, onClose }: Props) {
         <button
           type="button"
           onClick={handleSave}
-          className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-95 rounded-xl text-sm font-semibold text-white transition-all duration-200"
+          className="w-full min-h-11 py-2.5 bg-blue-500 hover:bg-blue-600 active:scale-95 rounded-xl text-sm font-semibold text-white transition-all duration-200"
         >
           Save
         </button>

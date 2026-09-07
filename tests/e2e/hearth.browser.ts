@@ -78,6 +78,32 @@ test("controls call Home Assistant services", async ({ page }) => {
     );
 });
 
+test("fan speed slider has a reliable pointer target", async ({ page }) => {
+  const slider = page.getByRole("slider", { name: "Fan speed" });
+  const box = await slider.boundingBox();
+
+  expect(box).not.toBeNull();
+  expect(box!.height).toBeGreaterThanOrEqual(36);
+
+  await slider.click({ position: { x: box!.width - 2, y: box!.height / 2 } });
+  await expect(slider).toHaveValue("9");
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__haMessages.some(
+          (message) =>
+            message.type === "call_service" &&
+            message.domain === "fan" &&
+            message.service === "set_percentage" &&
+            message.service_data?.percentage === 99
+        );
+      })
+    )
+    .toBe(true);
+});
+
 test("offline controls stay locked until reconnection", async ({ page }) => {
   await page.getByRole("button", { name: "Show sliders" }).click();
 
@@ -291,6 +317,36 @@ test("lazy routes, dialogs, and sensor history load", async ({ page }) => {
 
   await page.getByRole("button", { name: "Edit card" }).first().click();
   await expect(page.getByRole("heading", { name: "Edit Card" })).toBeVisible();
+});
+
+test("dialogs trap focus, close with Escape, and restore focus", async ({ page }) => {
+  await page.getByRole("button", { name: "Edit dashboard" }).click();
+  const openButton = page.getByRole("button", { name: "Add Card", exact: true });
+  await openButton.click();
+
+  const dialog = page.getByRole("dialog", { name: "Add Card" });
+  const closeButton = page.getByRole("button", { name: "Close Add Card" });
+  await expect(dialog).toBeVisible();
+  await expect(closeButton).toBeFocused();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("button", { name: /^Weather\b/ })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(closeButton).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(openButton).toBeFocused();
+});
+
+test("reduced motion disables dashboard transitions", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const transitionDuration = await page
+    .locator(".flip-card-inner")
+    .first()
+    .evaluate((element) => getComputedStyle(element).transitionDuration);
+
+  expect(Number.parseFloat(transitionDuration)).toBeLessThanOrEqual(0.001);
 });
 
 test("dashboard edits save or cancel as one transaction", async ({ page }) => {

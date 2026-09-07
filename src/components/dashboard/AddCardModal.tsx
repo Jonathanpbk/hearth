@@ -90,6 +90,7 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
       <div className="p-4 space-y-3">
         <input
           type="text"
+          aria-label="Search entities"
           placeholder="Search entities…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -107,6 +108,7 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
               const name = (entity.attributes.friendly_name as string | undefined) ?? id;
               return (
                 <button
+                  type="button"
                   key={id}
                   onClick={() => handleAdd(selectedType, id)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.06] transition-colors text-left"
@@ -133,8 +135,9 @@ export function AddCardModal({ pageId, currentLayout, onClose }: Props) {
         </div>
 
         <button
+          type="button"
           onClick={() => { setSelectedType(null); setSearch(""); }}
-          className="text-xs text-white/30 hover:text-white/50 transition-colors"
+          className="min-h-11 text-xs text-white/30 hover:text-white/50 transition-colors"
         >
           ← Back to card types
         </button>
