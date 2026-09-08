@@ -2,6 +2,13 @@
 
 All notable Hearth changes are recorded in this file.
 
+## [1.0.2] - 2026-09-08
+
+### Fixed
+
+- Prevented service-worker activation from reloading an open Safari or installed iPhone dashboard.
+- Added a persistent circuit breaker which stops repeated automatic PWA recovery while preserving manual updates.
+
 ## [1.0.1] - 2026-09-08
 
 ### Fixed
@@ -32,5 +39,6 @@ All notable Hearth changes are recorded in this file.
 - Added Content Security Policy, permissions, referrer, content-type, and frame protections.
 - Removed external font requests from the application shell.
 
+[1.0.2]: https://github.com/Jonathanpbk/hearth/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Jonathanpbk/hearth/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Jonathanpbk/hearth/releases/tag/v1.0.0

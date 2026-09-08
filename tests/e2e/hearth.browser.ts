@@ -485,7 +485,7 @@ test("card deletion requires confirmation and supports undo", async ({ page }) =
 
 test("runtime recovery replaces blank lazy failures", async ({ page }) => {
   await page.evaluate(() => {
-    sessionStorage.setItem("hearth-runtime-recovery-at", String(Date.now()));
+    localStorage.setItem("hearth-runtime-recovery-at", String(Date.now()));
   });
 
   let settingsRequests = 0;
@@ -541,10 +541,29 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
     .toBe("yes");
 });
 
+test("automatic PWA recovery stops a repeated reload loop", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("hearth-recovery-page-at", String(Date.now()));
+    localStorage.setItem("e2e-preserved", "yes");
+  });
+  await page.goto("/api/pwa-update.html?runtime-recovery=repeat");
+
+  await expect(page).toHaveURL(/\/api\/pwa-update\.html\?runtime-recovery=repeat$/);
+  await expect(page.getByText("Automatic recovery stopped", { exact: false }))
+    .toBeVisible();
+  await expect(page.getByRole("link", { name: "Return to Hearth" }))
+    .toBeVisible();
+  await page.waitForTimeout(1_500);
+  await expect(page).toHaveURL(/\/api\/pwa-update\.html\?runtime-recovery=repeat$/);
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("e2e-preserved")))
+    .toBe("yes");
+});
+
 test("settings reports the installed PWA build", async ({ page }) => {
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(
-    page.getByText("v1.0.1 (development)", { exact: true })
+    page.getByText("v1.0.2 (development)", { exact: true })
   ).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
 
@@ -579,7 +598,7 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
   expect(copied).not.toContain("test-token");
   expect(copied).not.toContain("127.0.0.1:4173");
   expect(copied).not.toContain("go2rtc.test");
-  expect(report.hearth.releaseVersion).toBe("1.0.1");
+  expect(report.hearth.releaseVersion).toBe("1.0.2");
   expect(report.hearth.buildCommit).toBe("development");
   expect(report.configuration.homeAssistantConfigured).toBe(true);
   expect(report.homeAssistant.connectionStatus).toBe("connected");

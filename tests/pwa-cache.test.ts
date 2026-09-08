@@ -10,6 +10,14 @@ const recoveryScript = readFileSync(
   new URL("../public/api/pwa-update.js", import.meta.url),
   "utf8"
 );
+const registrationSource = readFileSync(
+  new URL("../src/lib/pwa-registration.ts", import.meta.url),
+  "utf8"
+);
+const viteConfig = readFileSync(
+  new URL("../vite.config.ts", import.meta.url),
+  "utf8"
+);
 
 describe("PWA cache configuration", () => {
   it.each([
@@ -42,5 +50,21 @@ describe("PWA cache configuration", () => {
     expect(recoveryScript).toContain("caches.delete(cacheName)");
     expect(recoveryScript).not.toContain("localStorage.clear");
     expect(recoveryScript).not.toContain("localStorage.removeItem");
+  });
+
+  it("does not let a new worker reload or claim an open dashboard", () => {
+    expect(registrationSource).not.toContain("controllerchange");
+    expect(registrationSource).not.toContain("window.location.reload");
+    expect(viteConfig).toContain('registerType: "prompt"');
+    expect(viteConfig).toContain("skipWaiting: false");
+    expect(viteConfig).toContain("clientsClaim: false");
+  });
+
+  it("stops repeated automatic recovery while keeping manual updates available", () => {
+    expect(recoveryScript).toContain('search.has("runtime-recovery")');
+    expect(recoveryScript).toContain('"hearth-recovery-page-at"');
+    expect(recoveryScript).toContain("window.localStorage.getItem");
+    expect(recoveryScript).toContain("window.localStorage.setItem");
+    expect(recoveryScript).toContain("stopRecoveryLoop");
   });
 });
