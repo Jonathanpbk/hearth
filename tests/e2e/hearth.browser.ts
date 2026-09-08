@@ -421,7 +421,7 @@ test("dialogs trap focus, close with Escape, and restore focus", async ({ page }
 
   await page.keyboard.press("Shift+Tab");
   await expect(
-    page.getByRole("button", { name: "Sensor", exact: true })
+    dialog.getByRole("button", { name: /^Sensor\b/ })
   ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(closeButton).toBeFocused();
