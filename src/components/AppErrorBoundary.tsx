@@ -29,7 +29,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (
       claimAutomaticRuntimeRecovery(
         error,
-        window.sessionStorage,
+        window.localStorage,
         Date.now(),
         navigator.onLine
       )

@@ -11,15 +11,6 @@ async function requestUpdate(registration: ServiceWorkerRegistration): Promise<v
 export function registerPWAUpdates(): void {
   if (!("serviceWorker" in navigator)) return;
 
-  const hadController = Boolean(navigator.serviceWorker.controller);
-  let reloadStarted = false;
-
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!hadController || reloadStarted) return;
-    reloadStarted = true;
-    window.location.reload();
-  });
-
   window.addEventListener("load", () => {
     void navigator.serviceWorker
       .register("/sw.js", {
