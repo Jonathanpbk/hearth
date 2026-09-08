@@ -179,6 +179,15 @@ test("light card distinguishes tapping, dragging, and holding", async ({ page })
   await expect(page.getByLabel("Light colour picker")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Colour" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Temperature" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Temperature" }).click();
+  await page
+    .getByRole("slider", { name: "Light colour temperature" })
+    .fill("3500");
+  await expect(card.locator("[data-light-brightness-fill]")).toHaveCSS(
+    "background-color",
+    "rgb(255, 234, 218)"
+  );
 });
 
 test("light colour presets save, apply, clear, and persist", async ({ page }) => {
@@ -738,7 +747,7 @@ test("automatic PWA recovery stops a repeated reload loop", async ({ page }) => 
 test("settings reports the installed PWA build", async ({ page }) => {
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(
-    page.getByText("v1.1.0 (development)", { exact: true })
+    page.getByText("v1.1.1 (development)", { exact: true })
   ).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
 
@@ -773,7 +782,7 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
   expect(copied).not.toContain("test-token");
   expect(copied).not.toContain("127.0.0.1:4173");
   expect(copied).not.toContain("go2rtc.test");
-  expect(report.hearth.releaseVersion).toBe("1.1.0");
+  expect(report.hearth.releaseVersion).toBe("1.1.1");
   expect(report.hearth.buildCommit).toBe("development");
   expect(report.configuration.homeAssistantConfigured).toBe(true);
   expect(report.homeAssistant.connectionStatus).toBe("connected");
