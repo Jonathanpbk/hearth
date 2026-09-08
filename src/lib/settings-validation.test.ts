@@ -88,6 +88,31 @@ describe("settings validation", () => {
     });
   });
 
+  it("preserves valid light colour presets in backups", () => {
+    const settings = {
+      ...validSettings,
+      lightColorPresets: {
+        "light.lounge": ["#ff0000", null, "#00ff00", null, null],
+      },
+    };
+
+    const parsed = parseSettingsBackup(serializeSettingsBackup(settings));
+    expect(parsed.settings.lightColorPresets).toEqual(
+      settings.lightColorPresets
+    );
+  });
+
+  it("rejects malformed light colour presets in a versioned backup", () => {
+    const backup = JSON.parse(serializeSettingsBackup(validSettings));
+    backup.settings.lightColorPresets = {
+      "light.lounge": ["#ff0000"],
+    };
+
+    expect(() => parseSettingsBackup(JSON.stringify(backup))).toThrow(
+      "light colour presets"
+    );
+  });
+
   it("migrates a legacy Hearth backup", () => {
     const legacyPage = { ...validSettings.pages[0] } as Record<string, unknown>;
     delete legacyPage.icon;

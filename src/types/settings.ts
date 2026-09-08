@@ -1,5 +1,8 @@
 import type { Page } from "./dashboard";
 
+export type LightColorPreset = string | null;
+export type LightColorPresets = Record<string, LightColorPreset[]>;
+
 export interface Settings {
   haUrl: string;
   haToken: string;
@@ -13,6 +16,7 @@ export interface Settings {
   showDock: boolean;
   autoDim: boolean;
   dimTimeout: number;
+  lightColorPresets: LightColorPresets;
   pages: Page[];
 }
 
@@ -29,5 +33,6 @@ export const defaultSettings: Settings = {
   showDock: true,
   autoDim: false,
   dimTimeout: 60,
+  lightColorPresets: {},
   pages: [{ id: "default", name: "Home", icon: "LayoutDashboard", cards: [], layout: [] }],
 };

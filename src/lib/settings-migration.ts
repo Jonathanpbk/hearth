@@ -5,6 +5,7 @@ import {
   type CardType,
   type Page,
 } from "../types/dashboard";
+import { LIGHT_PRESET_COUNT, normalizePresetColor } from "./light-controls";
 
 export type PersistedCard = Omit<CardConfig, "type"> & { type: string };
 export type PersistedPage = Omit<Page, "cards"> & { cards: PersistedCard[] };
@@ -42,6 +43,28 @@ function pagesOr(settings: PersistedSettings): Page[] {
   return migratePersistedPages(settings.pages);
 }
 
+export function migrateLightColorPresets(
+  value: unknown
+): Settings["lightColorPresets"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([entityId, slots]) =>
+        entityId.startsWith("light.") && Array.isArray(slots)
+      )
+      .map(([entityId, slots]) => {
+        const normalized = (slots as unknown[])
+          .slice(0, LIGHT_PRESET_COUNT)
+          .map((slot) =>
+            typeof slot === "string" ? normalizePresetColor(slot) : null
+          );
+        while (normalized.length < LIGHT_PRESET_COUNT) normalized.push(null);
+        return [entityId, normalized];
+      })
+  );
+}
+
 export function mergePersistedSettings(
   persisted: PersistedSettings
 ): Settings {
@@ -56,6 +79,7 @@ export function mergePersistedSettings(
     ...defaultSettings,
     ...migrated,
     haUrl,
+    lightColorPresets: migrateLightColorPresets(migrated.lightColorPresets),
     pages: pagesOr(migrated),
   };
 }

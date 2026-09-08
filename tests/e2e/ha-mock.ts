@@ -29,10 +29,24 @@ export const mockEntities: Record<string, MockEntity> = {
     attributes: {
       friendly_name: "Test Light",
       brightness: 128,
+      color_mode: "hs",
+      rgb_color: [128, 64, 255],
       color_temp_kelvin: 3000,
       min_color_temp_kelvin: 2200,
       max_color_temp_kelvin: 4000,
-      supported_color_modes: ["brightness", "color_temp"],
+      supported_color_modes: ["color_temp", "hs"],
+    },
+  },
+  "light.test_temperature_only": {
+    state: "on",
+    attributes: {
+      friendly_name: "Temperature Light",
+      brightness: 191,
+      color_mode: "color_temp",
+      color_temp_kelvin: 3200,
+      min_color_temp_kelvin: 2200,
+      max_color_temp_kelvin: 4000,
+      supported_color_modes: ["color_temp"],
     },
   },
   "sensor.test_temperature": {

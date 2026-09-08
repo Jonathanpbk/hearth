@@ -5,7 +5,7 @@ Hearth is a touch-focused Progressive Web App for controlling Home Assistant fro
 ## Features
 
 - Configurable dashboard pages and cards
-- Light, sensor, clock and weather, scene launcher, and Dreo fan cards
+- Gesture-controlled light cards with colour presets, plus sensor, clock and weather, scene launcher, and Dreo fan cards
 - Fixed-card dashboard editing with undo and safe cancellation
 - Camera event overlays with MSE playback
 - Home Assistant reconnect handling and locked offline controls

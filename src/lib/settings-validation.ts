@@ -9,6 +9,7 @@ import {
 } from "../types/dashboard";
 import { type Settings } from "../types/settings";
 import {
+  migrateLightColorPresets,
   migratePersistedPages,
   mergePersistedSettings,
   type PersistedPage,
@@ -36,6 +37,21 @@ const WEATHER_ENTITY_ID_PATTERN = /^weather\.[a-z0-9_]+$/;
 const EVENT_NAME_PATTERN = /^[a-z0-9_]+$/;
 const CARD_TYPES = new Set(Object.keys(CARD_DEFAULTS));
 const RETIRED_CARD_TYPES = new Set(["switch", "script", "scene", "weather"]);
+
+function hasValidLightColorPresets(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  return Object.entries(value).every(
+    ([entityId, slots]) =>
+      entityId.startsWith("light.") &&
+      Array.isArray(slots) &&
+      slots.length === 5 &&
+      slots.every(
+        (slot) => slot === null ||
+          (typeof slot === "string" && /^#[0-9a-f]{6}$/i.test(slot))
+      )
+  );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -196,6 +212,10 @@ export function validateSettings(input: unknown): SettingsValidationResult {
     errors.pages = "The dashboard pages or layouts are invalid.";
   }
 
+  if (!hasValidLightColorPresets(input.lightColorPresets)) {
+    errors.pages = errors.pages ?? "The saved light colour presets are invalid.";
+  }
+
   if (
     typeof cameraEnabled !== "boolean" ||
     typeof input.wakeLockEnabled !== "boolean" ||
@@ -223,6 +243,7 @@ export function validateSettings(input: unknown): SettingsValidationResult {
       showDock: input.showDock as boolean,
       autoDim: input.autoDim as boolean,
       dimTimeout: dimTimeout as number,
+      lightColorPresets: migrateLightColorPresets(input.lightColorPresets),
       pages: input.pages as Page[],
     },
   };
