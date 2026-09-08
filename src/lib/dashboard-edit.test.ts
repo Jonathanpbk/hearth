@@ -57,7 +57,7 @@ describe("dashboard edit helpers", () => {
       addDraftCard(
         pages,
         "home",
-        { id: "new", type: "switch", entityId: "switch.test" },
+        { id: "new", type: "sensor", entityId: "sensor.new" },
         { i: "new", x: 1, y: 0, w: 4, h: 2 }
       )
     ).toBe(pages);

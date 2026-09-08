@@ -119,6 +119,42 @@ describe("settings validation", () => {
     );
   });
 
+  it("removes retired cards from a versioned backup", () => {
+    const backup = JSON.stringify({
+      format: SETTINGS_BACKUP_FORMAT,
+      version: SETTINGS_BACKUP_VERSION,
+      exportedAt: "2026-09-08T12:00:00.000Z",
+      settings: {
+        ...validSettings,
+        haToken: undefined,
+        pages: [
+          {
+            id: "home",
+            name: "Home",
+            icon: "Home",
+            cards: [
+              { id: "light", type: "light", entityId: "light.test" },
+              { id: "weather", type: "weather", entityId: "" },
+            ],
+            layout: [
+              { i: "light", x: 3, y: 2, w: 2, h: 1 },
+              { i: "weather", x: 0, y: 3, w: 8, h: 3 },
+            ],
+          },
+        ],
+      },
+    });
+
+    const parsed = parseSettingsBackup(backup);
+    expect(parsed.cardCount).toBe(1);
+    expect(parsed.settings.pages[0].cards).toEqual([
+      { id: "light", type: "light", entityId: "light.test" },
+    ]);
+    expect(parsed.settings.pages[0].layout).toEqual([
+      { i: "light", x: 3, y: 2, w: 2, h: 1 },
+    ]);
+  });
+
   it("requires a token when restoring a safe backup on a new device", () => {
     const parsed = parseSettingsBackup(serializeSettingsBackup(validSettings));
 

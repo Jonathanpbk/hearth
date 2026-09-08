@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 function source(path: string): string {
@@ -66,11 +66,7 @@ describe("startup code splitting", () => {
 
     for (const widget of [
       "LightCard",
-      "SwitchCard",
-      "SceneCard",
-      "ScriptCard",
       "SensorCard",
-      "WeatherWidget",
       "ClockWeatherCard",
       "DreoFanCard",
       "ScenesCard",
@@ -79,6 +75,20 @@ describe("startup code splitting", () => {
       expect(dashboardCard).not.toContain(
         `import { ${widget} } from "../widgets/${widget}"`
       );
+    }
+
+    for (const widget of [
+      "SwitchCard",
+      "SceneCard",
+      "ScriptCard",
+      "WeatherWidget",
+    ]) {
+      expect(dashboardCard).not.toContain(widget);
+      expect(
+        existsSync(
+          new URL(`../src/components/widgets/${widget}.tsx`, import.meta.url)
+        )
+      ).toBe(false);
     }
   });
 

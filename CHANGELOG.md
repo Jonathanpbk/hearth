@@ -2,6 +2,13 @@
 
 All notable Hearth changes are recorded in this file.
 
+## [1.0.3] - 2026-09-08
+
+### Removed
+
+- Removed the standalone Switch, Script, Scene, and Weather card types from dashboard editing and production bundles.
+- Migrated retired cards out of saved dashboards while preserving every supported card and layout position.
+
 ## [1.0.2] - 2026-09-08
 
 ### Fixed
@@ -39,6 +46,7 @@ All notable Hearth changes are recorded in this file.
 - Added Content Security Policy, permissions, referrer, content-type, and frame protections.
 - Removed external font requests from the application shell.
 
+[1.0.3]: https://github.com/Jonathanpbk/hearth/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/Jonathanpbk/hearth/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/Jonathanpbk/hearth/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Jonathanpbk/hearth/releases/tag/v1.0.0

@@ -2,10 +2,16 @@ import {
   CAMERA_MAX_DURATION_MS,
   CAMERA_MIN_DURATION_MS,
 } from "../config/defaults";
-import { CARD_DEFAULTS, type CardConfig, type Page, type StoredLayoutItem } from "../types/dashboard";
+import {
+  CARD_DEFAULTS,
+  type Page,
+  type StoredLayoutItem,
+} from "../types/dashboard";
 import { type Settings } from "../types/settings";
 import {
+  migratePersistedPages,
   mergePersistedSettings,
+  type PersistedPage,
   type PersistedSettings,
 } from "./settings-migration";
 
@@ -29,6 +35,7 @@ export interface SettingsValidationResult {
 const WEATHER_ENTITY_ID_PATTERN = /^weather\.[a-z0-9_]+$/;
 const EVENT_NAME_PATTERN = /^[a-z0-9_]+$/;
 const CARD_TYPES = new Set(Object.keys(CARD_DEFAULTS));
+const RETIRED_CARD_TYPES = new Set(["switch", "script", "scene", "weather"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -56,13 +63,14 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function isCard(value: unknown): value is CardConfig {
+function isCard(value: unknown, allowRetiredCards = false): boolean {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === "string" &&
     value.id.trim().length > 0 &&
     typeof value.type === "string" &&
-    CARD_TYPES.has(value.type) &&
+    (CARD_TYPES.has(value.type) ||
+      (allowRetiredCards && RETIRED_CARD_TYPES.has(value.type))) &&
     typeof value.entityId === "string" &&
     (value.title === undefined || typeof value.title === "string")
   );
@@ -86,7 +94,11 @@ function isLayoutItem(value: unknown): value is StoredLayoutItem {
   );
 }
 
-function isPage(value: unknown, allowMissingIcon = false): value is Page {
+function isPage(
+  value: unknown,
+  allowMissingIcon = false,
+  allowRetiredCards = false
+): boolean {
   if (!isRecord(value)) return false;
   if (
     typeof value.id !== "string" ||
@@ -95,7 +107,7 @@ function isPage(value: unknown, allowMissingIcon = false): value is Page {
     !value.name.trim() ||
     (typeof value.icon !== "string" && !(allowMissingIcon && value.icon === undefined)) ||
     !Array.isArray(value.cards) ||
-    !value.cards.every(isCard) ||
+    !value.cards.every((card) => isCard(card, allowRetiredCards)) ||
     !Array.isArray(value.layout) ||
     !value.layout.every(isLayoutItem)
   ) {
@@ -109,11 +121,17 @@ function isPage(value: unknown, allowMissingIcon = false): value is Page {
   return layoutIds.every((id) => cardIds.includes(id));
 }
 
-function hasValidPages(value: unknown, allowMissingIcon = false): value is Page[] {
+function hasValidPages(
+  value: unknown,
+  allowMissingIcon = false,
+  allowRetiredCards = false
+): boolean {
   if (
     !Array.isArray(value) ||
     value.length === 0 ||
-    !value.every((page) => isPage(page, allowMissingIcon))
+    !value.every((page) =>
+      isPage(page, allowMissingIcon, allowRetiredCards)
+    )
   ) {
     return false;
   }
@@ -272,8 +290,18 @@ export function parseSettingsBackup(text: string): ParsedSettingsBackup {
       throw new Error("The backup export date is invalid.");
     }
 
+    if (
+      parsed.settings.pages !== undefined &&
+      !hasValidPages(parsed.settings.pages, false, true)
+    ) {
+      throw new Error("The backup contains invalid dashboard pages or layouts.");
+    }
+
     const result = validateSettings({
       ...parsed.settings,
+      pages: Array.isArray(parsed.settings.pages)
+        ? migratePersistedPages(parsed.settings.pages as PersistedPage[])
+        : parsed.settings.pages,
       haToken: "hearth-backup-validation-token",
     });
     if (!result.settings) {
@@ -295,7 +323,7 @@ export function parseSettingsBackup(text: string): ParsedSettingsBackup {
   const persisted = parsed.state.settings;
   if (
     persisted.pages !== undefined &&
-    !hasValidPages(persisted.pages, true)
+    !hasValidPages(persisted.pages, true, true)
   ) {
     throw new Error("The backup contains invalid dashboard pages or layouts.");
   }

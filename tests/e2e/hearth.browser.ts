@@ -413,8 +413,16 @@ test("dialogs trap focus, close with Escape, and restore focus", async ({ page }
   await expect(dialog).toBeVisible();
   await expect(closeButton).toBeFocused();
 
+  for (const removedCard of ["Switch", "Script", "Scene", "Weather"]) {
+    await expect(
+      dialog.getByRole("button", { name: removedCard, exact: true })
+    ).toHaveCount(0);
+  }
+
   await page.keyboard.press("Shift+Tab");
-  await expect(page.getByRole("button", { name: /^Weather\b/ })).toBeFocused();
+  await expect(
+    dialog.getByRole("button", { name: /^Sensor\b/ })
+  ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(closeButton).toBeFocused();
 
@@ -563,7 +571,7 @@ test("automatic PWA recovery stops a repeated reload loop", async ({ page }) => 
 test("settings reports the installed PWA build", async ({ page }) => {
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(
-    page.getByText("v1.0.2 (development)", { exact: true })
+    page.getByText("v1.0.3 (development)", { exact: true })
   ).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
 
@@ -598,7 +606,7 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
   expect(copied).not.toContain("test-token");
   expect(copied).not.toContain("127.0.0.1:4173");
   expect(copied).not.toContain("go2rtc.test");
-  expect(report.hearth.releaseVersion).toBe("1.0.2");
+  expect(report.hearth.releaseVersion).toBe("1.0.3");
   expect(report.hearth.buildCommit).toBe("development");
   expect(report.configuration.homeAssistantConfigured).toBe(true);
   expect(report.homeAssistant.connectionStatus).toBe("connected");

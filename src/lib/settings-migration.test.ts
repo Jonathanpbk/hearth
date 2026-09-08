@@ -54,4 +54,41 @@ describe("settings migration", () => {
       },
     ]);
   });
+
+  it("removes retired cards while preserving supported card positions", () => {
+    const settings = mergePersistedSettings({
+      pages: [
+        {
+          id: "tablet",
+          name: "Tablet",
+          icon: "Home",
+          cards: [
+            { id: "light", type: "light", entityId: "light.test" },
+            { id: "switch", type: "switch", entityId: "switch.test" },
+            { id: "scene", type: "scene", entityId: "scene.test" },
+            { id: "script", type: "script", entityId: "script.test" },
+            { id: "weather", type: "weather", entityId: "" },
+            { id: "sensor", type: "sensor", entityId: "sensor.test" },
+          ],
+          layout: [
+            { i: "light", x: 2, y: 1, w: 2, h: 1 },
+            { i: "switch", x: 4, y: 1, w: 4, h: 2 },
+            { i: "scene", x: 8, y: 1, w: 3, h: 2 },
+            { i: "script", x: 11, y: 1, w: 3, h: 2 },
+            { i: "weather", x: 0, y: 3, w: 8, h: 3 },
+            { i: "sensor", x: 8, y: 3, w: 4, h: 2 },
+          ],
+        },
+      ],
+    });
+
+    expect(settings.pages[0].cards.map((card) => card.id)).toEqual([
+      "light",
+      "sensor",
+    ]);
+    expect(settings.pages[0].layout).toEqual([
+      { i: "light", x: 2, y: 1, w: 2, h: 1 },
+      { i: "sensor", x: 8, y: 3, w: 4, h: 2 },
+    ]);
+  });
 });
