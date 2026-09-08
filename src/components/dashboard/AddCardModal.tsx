@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sun, ToggleLeft, Sunset, Play, Activity, Cloud, Clock, Wind, Sparkles } from "lucide-react";
+import { Sun, Activity, Clock, Wind, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Modal } from "./Modal";
 import { useEntityStore } from "../../store/useEntityStore";
@@ -11,15 +11,11 @@ const CARD_TYPE_META: { type: CardType; label: string; Icon: LucideIcon; descrip
   { type: "dreo-fan",      label: "Dreo Fan",        Icon: Wind,       description: "Fan controls + position presets" },
   { type: "scenes",        label: "Scenes",          Icon: Sparkles,   description: "Quick scene launcher" },
   { type: "light",         label: "Light",           Icon: Sun,        description: "Control brightness & colour" },
-  { type: "switch",        label: "Switch",          Icon: ToggleLeft, description: "Toggle on / off" },
-  { type: "scene",         label: "Scene",           Icon: Sunset,     description: "Activate a scene" },
-  { type: "script",        label: "Script",          Icon: Play,       description: "Run a script" },
   { type: "sensor",        label: "Sensor",          Icon: Activity,   description: "Show a sensor value" },
-  { type: "weather",       label: "Weather",         Icon: Cloud,      description: "Current weather & forecast" },
 ];
 
 // Card types that don't require an entity — added to the grid immediately.
-const ENTITY_FREE: CardType[] = ["weather", "clock-weather", "dreo-fan", "scenes"];
+const ENTITY_FREE: CardType[] = ["clock-weather", "dreo-fan", "scenes"];
 
 interface Props {
   pageId: string;

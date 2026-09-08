@@ -4,22 +4,8 @@ import type { CardConfig } from "../../types/dashboard";
 const LightCard = lazy(() =>
   import("../widgets/LightCard").then((module) => ({ default: module.LightCard }))
 );
-const SwitchCard = lazy(() =>
-  import("../widgets/SwitchCard").then((module) => ({ default: module.SwitchCard }))
-);
-const SceneCard = lazy(() =>
-  import("../widgets/SceneCard").then((module) => ({ default: module.SceneCard }))
-);
-const ScriptCard = lazy(() =>
-  import("../widgets/ScriptCard").then((module) => ({ default: module.ScriptCard }))
-);
 const SensorCard = lazy(() =>
   import("../widgets/SensorCard").then((module) => ({ default: module.SensorCard }))
-);
-const WeatherWidget = lazy(() =>
-  import("../widgets/WeatherWidget").then((module) => ({
-    default: module.WeatherWidget,
-  }))
 );
 const ClockWeatherCard = lazy(() =>
   import("../widgets/ClockWeatherCard").then((module) => ({
@@ -51,16 +37,8 @@ function renderCard(card: CardConfig) {
   switch (card.type) {
     case "light":
       return <LightCard entityId={card.entityId} titleOverride={card.title} />;
-    case "switch":
-      return <SwitchCard entityId={card.entityId} titleOverride={card.title} />;
-    case "scene":
-      return <SceneCard entityId={card.entityId} titleOverride={card.title} />;
-    case "script":
-      return <ScriptCard entityId={card.entityId} titleOverride={card.title} />;
     case "sensor":
       return <SensorCard entityId={card.entityId} titleOverride={card.title} />;
-    case "weather":
-      return <WeatherWidget />;
     case "clock-weather":
       return <ClockWeatherCard />;
     case "dreo-fan":

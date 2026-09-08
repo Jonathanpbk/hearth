@@ -1,4 +1,9 @@
-export type CardType = "light" | "switch" | "scene" | "script" | "sensor" | "weather" | "clock-weather" | "dreo-fan" | "scenes";
+export type CardType =
+  | "light"
+  | "sensor"
+  | "clock-weather"
+  | "dreo-fan"
+  | "scenes";
 
 export interface CardConfig {
   id: string;
@@ -29,11 +34,7 @@ export interface Page {
 // Old minW:2 → 3, old w:3 → 4, old w:6 → 8, old minW:4 → 5.
 export const CARD_DEFAULTS: Record<CardType, { w: number; h: number; minW: number; minH: number }> = {
   light:           { w: 2,  h: 1, minW: 2, minH: 1 },
-  switch:          { w: 4,  h: 2, minW: 3, minH: 2 },
-  scene:           { w: 3,  h: 2, minW: 3, minH: 2 },
-  script:          { w: 3,  h: 2, minW: 3, minH: 2 },
   sensor:          { w: 4,  h: 2, minW: 3, minH: 2 },
-  weather:         { w: 8,  h: 3, minW: 5, minH: 3 },
   "clock-weather": { w: 4,  h: 3, minW: 4, minH: 3 },
   "dreo-fan":      { w: 4,  h: 6, minW: 2, minH: 4 },
   "scenes":        { w: 4,  h: 2, minW: 4, minH: 2 },
@@ -41,11 +42,7 @@ export const CARD_DEFAULTS: Record<CardType, { w: number; h: number; minW: numbe
 
 export const CARD_DOMAIN: Record<CardType, string> = {
   light:           "light",
-  switch:          "switch",
-  scene:           "scene",
-  script:          "script",
   sensor:          "sensor",
-  weather:         "weather",
   "clock-weather": "",
   "dreo-fan":      "",
   "scenes":        "",
