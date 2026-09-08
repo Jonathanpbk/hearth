@@ -43,6 +43,25 @@ export const mockEntities: Record<string, MockEntity> = {
       device_class: "temperature",
     },
   },
+  "weather.home": {
+    state: "cloudy",
+    attributes: {
+      friendly_name: "Home weather",
+      temperature: 17,
+      humidity: 68,
+      wind_speed: 13,
+      wind_speed_unit: "km/h",
+      forecast: [
+        { datetime: "2026-09-08T12:00:00Z", condition: "cloudy", temperature: 18, templow: 16 },
+        { datetime: "2026-09-09T12:00:00Z", condition: "partlycloudy", temperature: 22, templow: 16 },
+        { datetime: "2026-09-10T12:00:00Z", condition: "cloudy", temperature: 17, templow: 13 },
+        { datetime: "2026-09-11T12:00:00Z", condition: "rainy", temperature: 16, templow: 12 },
+        { datetime: "2026-09-12T12:00:00Z", condition: "partlycloudy", temperature: 16, templow: 10 },
+        { datetime: "2026-09-13T12:00:00Z", condition: "rainy", temperature: 17, templow: 13 },
+        { datetime: "2026-09-14T12:00:00Z", condition: "cloudy", temperature: 18, templow: 14 },
+      ],
+    },
+  },
   "fan.dreo": {
     state: "on",
     attributes: {

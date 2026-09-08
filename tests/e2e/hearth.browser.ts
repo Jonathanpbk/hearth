@@ -113,6 +113,81 @@ test("fan speed slider has a reliable pointer target", async ({ page }) => {
     .toBe(true);
 });
 
+test("an established connection does not enter a replacement loop", async ({ page }) => {
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__haMock.disconnect();
+  });
+  await expect(page.locator('[title="connected"]')).toHaveCount(0);
+
+  await page.waitForTimeout(2500);
+  await page.evaluate(() => {
+    const testWindow = window as unknown as TestWindow;
+    testWindow.__haMock.reconnect();
+  });
+
+  await expect(page.locator('[title="connected"]')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const testWindow = window as unknown as TestWindow;
+        return testWindow.__haMessages.filter(
+          (message) => message.type === "subscribe_entities"
+        ).length;
+      })
+    )
+    .toBe(2);
+
+  await page.waitForTimeout(2500);
+  await expect(page.locator('[title="connected"]')).toBeVisible();
+  expect(
+    await page.evaluate(() => {
+      const testWindow = window as unknown as TestWindow;
+      return testWindow.__haMessages.filter(
+        (message) => message.type === "subscribe_entities"
+      ).length;
+    })
+  ).toBe(2);
+});
+
+test("clock weather content stays separated on an iPhone-sized viewport", async ({ page }) => {
+  await page.evaluate(() => {
+    const stored = localStorage.getItem("hearth-settings");
+    if (!stored) throw new Error("Missing test settings");
+    const persisted = JSON.parse(stored);
+    persisted.state.settings.pages[0].cards = [
+      { id: "clock-card", type: "clock-weather", entityId: "" },
+    ];
+    persisted.state.settings.pages[0].layout = [
+      { i: "clock-card", x: 0, y: 0, w: 16, h: 3 },
+    ];
+    localStorage.setItem("hearth-settings", JSON.stringify(persisted));
+  });
+
+  await page.setViewportSize({ width: 440, height: 956 });
+  await page.reload();
+  await expect(page.locator('[title="connected"]')).toBeVisible();
+
+  const card = page.locator('[data-dashboard-card="clock-card"]');
+  const summary = card.locator("[data-clock-weather-summary]");
+  const forecast = card.locator("[data-clock-weather-forecast]");
+  await expect(summary).toBeVisible();
+  await expect(forecast).toBeVisible();
+
+  const [summaryBox, forecastBox] = await Promise.all([
+    summary.boundingBox(),
+    forecast.boundingBox(),
+  ]);
+  expect(summaryBox).not.toBeNull();
+  expect(forecastBox).not.toBeNull();
+  expect(summaryBox!.y + summaryBox!.height).toBeLessThanOrEqual(
+    forecastBox!.y + 1
+  );
+  expect(
+    await card.evaluate((element) => element.scrollHeight <= element.clientHeight)
+  ).toBe(true);
+});
+
 test("offline controls stay locked until reconnection", async ({ page }) => {
   await page.getByRole("button", { name: "Show sliders" }).click();
 
@@ -469,7 +544,7 @@ test("PWA recovery returns to Hearth without clearing storage", async ({ page })
 test("settings reports the installed PWA build", async ({ page }) => {
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(
-    page.getByText("v1.0.0 (development)", { exact: true })
+    page.getByText("v1.0.1 (development)", { exact: true })
   ).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
 
@@ -504,7 +579,7 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
   expect(copied).not.toContain("test-token");
   expect(copied).not.toContain("127.0.0.1:4173");
   expect(copied).not.toContain("go2rtc.test");
-  expect(report.hearth.releaseVersion).toBe("1.0.0");
+  expect(report.hearth.releaseVersion).toBe("1.0.1");
   expect(report.hearth.buildCommit).toBe("development");
   expect(report.configuration.homeAssistantConfigured).toBe(true);
   expect(report.homeAssistant.connectionStatus).toBe("connected");

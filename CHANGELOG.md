@@ -2,6 +2,13 @@
 
 All notable Hearth changes are recorded in this file.
 
+## [1.0.1] - 2026-09-08
+
+### Fixed
+
+- Stopped repeated Home Assistant connection replacement from causing a reconnect loop in Safari and the installed iPhone PWA.
+- Stabilized the clock and weather card on narrow screens and reduced clock rendering to one update per minute.
+
 ## [1.0.0] - 2026-09-07
 
 ### Added
@@ -25,4 +32,5 @@ All notable Hearth changes are recorded in this file.
 - Added Content Security Policy, permissions, referrer, content-type, and frame protections.
 - Removed external font requests from the application shell.
 
+[1.0.1]: https://github.com/Jonathanpbk/hearth/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Jonathanpbk/hearth/releases/tag/v1.0.0
