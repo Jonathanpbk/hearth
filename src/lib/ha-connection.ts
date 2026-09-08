@@ -6,10 +6,7 @@ import {
 } from "home-assistant-js-websocket";
 import { useEntityStore } from "../store/useEntityStore";
 import { useDiagnosticsStore } from "../store/useDiagnosticsStore";
-import {
-  HA_RECONNECT_GRACE_MS,
-  HA_RETRY_DELAYS_MS,
-} from "../config/defaults";
+import { HA_RETRY_DELAYS_MS } from "../config/defaults";
 
 interface ConnectionConfig {
   url: string;
@@ -98,14 +95,12 @@ function scheduleRetry(
 
 function attachConnectionListeners(
   connection: Connection,
-  config: ConnectionConfig,
   id: number
 ): () => void {
   const handleDisconnected = () => {
     if (id !== lifecycleId || connection !== activeConnection) return;
     useDiagnosticsStore.getState().recordHaDisconnected();
     setDisconnected();
-    scheduleRetry(id, config, HA_RECONNECT_GRACE_MS);
   };
 
   const handleReady = () => {
@@ -143,7 +138,7 @@ async function connect(id: number, config: ConnectionConfig): Promise<void> {
         setConnected();
       }
     });
-    removeConnectionListeners = attachConnectionListeners(connection, config, id);
+    removeConnectionListeners = attachConnectionListeners(connection, id);
     retryAttempt = 0;
   } catch {
     connection?.close();

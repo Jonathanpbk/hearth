@@ -11,6 +11,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { getConnection } from "../../lib/ha-connection";
 import type { WeatherEntityAttributes, WeatherForecastDay } from "../../types/weather";
 import { isUnavailableEntity } from "../../lib/entity-state";
+import { millisecondsUntilNextMinute } from "../../lib/clock";
 
 const CONDITION_ICONS: Record<string, LucideIcon> = {
   sunny: Sun,
@@ -44,7 +45,7 @@ function ForecastDay({ day, isHottest }: { day: WeatherForecastDay; isHottest: b
   const date = new Date(day.datetime);
   const abbrev = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex min-w-0 flex-col items-center gap-1">
       <span className={`text-xs font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}>
         {abbrev}
       </span>
@@ -88,8 +89,17 @@ export function ClockWeatherCard() {
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
+    let timer: ReturnType<typeof setTimeout>;
+
+    const scheduleNextMinute = () => {
+      timer = setTimeout(() => {
+        setNow(new Date());
+        scheduleNextMinute();
+      }, millisecondsUntilNextMinute(Date.now()) + 25);
+    };
+
+    scheduleNextMinute();
+    return () => clearTimeout(timer);
   }, []);
 
   const entity = useHAEntity(weatherEntityId);
@@ -118,20 +128,27 @@ export function ClockWeatherCard() {
 
   return (
     <InteractiveCard
-      className="h-full bg-[var(--color-surface)] rounded-2xl border border-white/[0.08] overflow-hidden"
-      style={{ display: "grid", gridTemplateRows: "auto auto" }}
+      className="h-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[var(--color-surface)]"
+      style={{
+        contain: "layout paint",
+        display: "grid",
+        gridTemplateRows: "minmax(0, 1fr) auto",
+      }}
     >
       {/* ── Row 1: clock (left) + weather (right) ────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 items-center min-h-0 px-3 pt-1.5">
+      <div
+        data-clock-weather-summary
+        className="grid min-h-0 grid-cols-2 items-center gap-3 overflow-hidden px-3 py-1.5"
+      >
 
         {/* Left — clock */}
         <div className="flex flex-col justify-center select-none min-w-0">
           <div className="flex items-baseline leading-none">
-            <span className="text-6xl font-bold tabular-nums text-white tracking-tight">
+            <span className="text-[clamp(2.5rem,13vw,3.75rem)] font-bold tabular-nums text-white tracking-tight">
               {displayHour}:{minutes}
             </span>
           </div>
-          <p className="text-base font-medium text-[#ffc174] mt-2 leading-none truncate">
+          <p className="mt-2 truncate text-[clamp(0.75rem,3.6vw,1rem)] font-medium leading-none text-[#ffc174]">
             {dateStr}
           </p>
         </div>
@@ -146,8 +163,8 @@ export function ClockWeatherCard() {
             <>
               {/* Icon + temperature */}
               <div className="flex items-center gap-2">
-                <ConditionIcon condition={condition} className="h-8 w-8 text-[#ffc174] shrink-0" />
-                <span className="text-5xl font-bold tabular-nums text-[#ffc174] leading-none">
+                <ConditionIcon condition={condition} className="h-7 w-7 shrink-0 text-[#ffc174] sm:h-8 sm:w-8" />
+                <span className="text-[clamp(2.25rem,11vw,3rem)] font-bold tabular-nums leading-none text-[#ffc174]">
                   {attrs?.temperature != null ? `${Math.round(attrs.temperature)}°` : "—"}
                 </span>
               </div>
@@ -178,8 +195,12 @@ export function ClockWeatherCard() {
       {/* ── Row 2: 7-day forecast strip — full card width ────────────────── */}
       {forecastDays.length > 0 && (
         <div
-          className="pb-1.5"
-          style={{ display: "grid", gridTemplateColumns: `repeat(${forecastDays.length}, 1fr)`, marginTop: "30px" }}
+          data-clock-weather-forecast
+          className="min-h-0 items-start overflow-hidden px-1 pb-1.5 pt-1"
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${forecastDays.length}, minmax(0, 1fr))`,
+          }}
         >
           {forecastDays.map((day) => (
             <ForecastDay

@@ -162,34 +162,30 @@ describe("Home Assistant connection lifecycle", () => {
     expect(useEntityStore.getState().connectionStatus).toBe("connected");
   });
 
-  it("reconnects after an established connection drops", async () => {
+  it("leaves established reconnection to the Home Assistant connection", async () => {
     vi.useFakeTimers();
     const first = makeConnection();
-    const second = makeConnection();
-    createConnectionMock
-      .mockResolvedValueOnce(first.connection)
-      .mockResolvedValueOnce(second.connection);
+    createConnectionMock.mockResolvedValue(first.connection);
 
     await initConnection("https://ha.example.com", "token");
     first.emit("disconnected");
 
     expect(useEntityStore.getState().connectionStatus).toBe("disconnected");
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(60_000);
 
-    expect(first.close).toHaveBeenCalledOnce();
-    expect(createConnectionMock).toHaveBeenCalledTimes(2);
-    expect(getConnection()).toBe(second.connection);
+    expect(first.close).not.toHaveBeenCalled();
+    expect(createConnectionMock).toHaveBeenCalledOnce();
   });
 
-  it("keeps the connection when it becomes ready during the grace period", async () => {
+  it("keeps the connection when its built-in reconnect becomes ready", async () => {
     vi.useFakeTimers();
     const connection = makeConnection();
     createConnectionMock.mockResolvedValue(connection.connection);
 
     await initConnection("https://ha.example.com", "token");
     connection.emit("disconnected");
+    await vi.advanceTimersByTimeAsync(30_000);
     connection.emit("ready");
-    await vi.advanceTimersByTimeAsync(2000);
 
     expect(createConnectionMock).toHaveBeenCalledOnce();
     expect(connection.close).not.toHaveBeenCalled();
