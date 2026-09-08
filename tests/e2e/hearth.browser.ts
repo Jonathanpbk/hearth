@@ -179,6 +179,15 @@ test("light card distinguishes tapping, dragging, and holding", async ({ page })
   await expect(page.getByLabel("Light colour picker")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Colour" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Temperature" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Temperature" }).click();
+  await page
+    .getByRole("slider", { name: "Light colour temperature" })
+    .fill("3500");
+  await expect(card.locator("[data-light-brightness-fill]")).toHaveCSS(
+    "background-color",
+    "rgb(255, 234, 218)"
+  );
 });
 
 test("light colour presets save, apply, clear, and persist", async ({ page }) => {

@@ -18,8 +18,8 @@ import {
   LIGHT_HOLD_DURATION_MS,
   LIGHT_UPDATE_DEBOUNCE_MS,
   brightnessToPercent,
-  kelvinToRgb,
   pointerXToBrightness,
+  resolveLightDisplayColor,
   type RgbColor,
 } from "../../lib/light-controls";
 import { LightControlsModal } from "./LightControlsModal";
@@ -90,8 +90,15 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const brightnessPercent = brightnessToPercent(displayBrightness);
   const displayColorTemp =
     localColorTemp ?? colorTempKelvin ?? Math.round((minKelvin + maxKelvin) / 2);
-  const displayRgb =
-    localRgb ?? entityRgb ?? kelvinToRgb(displayColorTemp, minKelvin, maxKelvin);
+  const displayRgb = resolveLightDisplayColor({
+    localColorTemp,
+    localRgb,
+    colorMode,
+    entityRgb,
+    colorTemp: displayColorTemp,
+    minKelvin,
+    maxKelvin,
+  });
   const visuallyOn = localBrightness !== null ? localBrightness > 0 : isOn;
   const stateUnavailable = entity ? isUnavailableEntity(entity) : false;
   const name =
@@ -207,6 +214,10 @@ export function LightCard({ entityId, titleOverride }: Props) {
   function handleColorTemp(value: number) {
     if (blockReason) return;
     const requestId = ++colorTempRequestRef.current;
+    rgbRequestRef.current += 1;
+    if (rgbTimerRef.current) clearTimeout(rgbTimerRef.current);
+    rgbTimerRef.current = null;
+    setLocalRgb(null);
     setLocalColorTemp(value);
     if (!isOn && localBrightness === null) {
       setLocalBrightness(brightness ?? 255);
@@ -226,6 +237,10 @@ export function LightCard({ entityId, titleOverride }: Props) {
   function handleRgb(value: RgbColor) {
     if (blockReason) return;
     const requestId = ++rgbRequestRef.current;
+    colorTempRequestRef.current += 1;
+    if (colorTempTimerRef.current) clearTimeout(colorTempTimerRef.current);
+    colorTempTimerRef.current = null;
+    setLocalColorTemp(null);
     setLocalRgb(value);
     if (!isOn && localBrightness === null) {
       setLocalBrightness(brightness ?? 255);

@@ -6,6 +6,7 @@ import {
   kelvinToRgb,
   normalizePresetColor,
   pointerXToBrightness,
+  resolveLightDisplayColor,
   rgbToHex,
   rgbToHsv,
 } from "./light-controls";
@@ -38,5 +39,39 @@ describe("light controls", () => {
   it("keeps colour temperature tint within the RGB channel range", () => {
     expect(kelvinToRgb(2200, 2200, 6500)).toEqual([255, 190, 120]);
     expect(kelvinToRgb(6500, 2200, 6500)).toEqual([255, 251, 255]);
+  });
+
+  it("uses the newly selected colour mode for the card tint", () => {
+    const base = {
+      colorTemp: 3000,
+      minKelvin: 2200,
+      maxKelvin: 4000,
+      entityRgb: [128, 64, 255] as [number, number, number],
+    };
+
+    expect(
+      resolveLightDisplayColor({
+        ...base,
+        colorMode: "hs",
+        localRgb: null,
+        localColorTemp: 3500,
+      })
+    ).toEqual(kelvinToRgb(3500, 2200, 4000));
+    expect(
+      resolveLightDisplayColor({
+        ...base,
+        colorMode: "color_temp",
+        localRgb: null,
+        localColorTemp: null,
+      })
+    ).toEqual(kelvinToRgb(3000, 2200, 4000));
+    expect(
+      resolveLightDisplayColor({
+        ...base,
+        colorMode: "color_temp",
+        localRgb: [255, 0, 0],
+        localColorTemp: null,
+      })
+    ).toEqual([255, 0, 0]);
   });
 });

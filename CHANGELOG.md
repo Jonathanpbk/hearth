@@ -2,6 +2,12 @@
 
 All notable Hearth changes are recorded in this file.
 
+## [1.1.1] - 2026-09-08
+
+### Fixed
+
+- Updated dual-mode Light card tints immediately when switching from RGB colour to colour temperature.
+
 ## [1.1.0] - 2026-09-08
 
 ### Added
@@ -57,6 +63,7 @@ All notable Hearth changes are recorded in this file.
 - Added Content Security Policy, permissions, referrer, content-type, and frame protections.
 - Removed external font requests from the application shell.
 
+[1.1.1]: https://github.com/Jonathanpbk/hearth/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Jonathanpbk/hearth/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/Jonathanpbk/hearth/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/Jonathanpbk/hearth/compare/v1.0.1...v1.0.2

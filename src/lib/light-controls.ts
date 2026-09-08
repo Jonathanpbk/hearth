@@ -35,6 +35,33 @@ export function kelvinToRgb(
   return [255, Math.round(190 + ratio * 61), Math.round(120 + ratio * 135)];
 }
 
+export function resolveLightDisplayColor({
+  localColorTemp,
+  localRgb,
+  colorMode,
+  entityRgb,
+  colorTemp,
+  minKelvin,
+  maxKelvin,
+}: {
+  localColorTemp: number | null;
+  localRgb: RgbColor | null;
+  colorMode: string | undefined;
+  entityRgb: RgbColor | undefined;
+  colorTemp: number;
+  minKelvin: number;
+  maxKelvin: number;
+}): RgbColor {
+  if (localColorTemp !== null) {
+    return kelvinToRgb(localColorTemp, minKelvin, maxKelvin);
+  }
+  if (localRgb) return localRgb;
+  if (colorMode === "color_temp") {
+    return kelvinToRgb(colorTemp, minKelvin, maxKelvin);
+  }
+  return entityRgb ?? kelvinToRgb(colorTemp, minKelvin, maxKelvin);
+}
+
 export function rgbToHex([red, green, blue]: RgbColor): string {
   return `#${[red, green, blue]
     .map((channel) => clamp(Math.round(channel), 0, 255).toString(16).padStart(2, "0"))
