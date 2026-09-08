@@ -29,6 +29,11 @@ interface SettingsStore {
   removeCard: (pageId: string, cardId: string) => void;
   updateCard: (pageId: string, card: CardConfig) => void;
   updateLayout: (pageId: string, layout: StoredLayoutItem[]) => void;
+  setLightColorPreset: (
+    entityId: string,
+    index: number,
+    color: string | null
+  ) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -124,6 +129,25 @@ export const useSettingsStore = create<SettingsStore>()(
             pages: updateDraftLayout(state.settings.pages, pageId, layout),
           },
         })),
+
+      setLightColorPreset: (entityId, index, color) =>
+        set((state) => {
+          if (index < 0 || index >= 5) return state;
+          const slots = [
+            ...(state.settings.lightColorPresets[entityId] ?? []),
+          ].slice(0, 5);
+          while (slots.length < 5) slots.push(null);
+          slots[index] = color;
+          return {
+            settings: {
+              ...state.settings,
+              lightColorPresets: {
+                ...state.settings.lightColorPresets,
+                [entityId]: slots,
+              },
+            },
+          };
+        }),
     }),
     {
       name: "hearth-settings",

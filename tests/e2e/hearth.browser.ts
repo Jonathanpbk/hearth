@@ -50,6 +50,25 @@ async function readDownload(download: Download): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+async function openLightControls(
+  page: Page,
+  entityId = "light.test_light"
+): Promise<void> {
+  const card = page.locator(`[data-light-card="${entityId}"]`);
+  const box = await card.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await expect(card.locator("[data-light-hold-progress]")).toHaveAttribute(
+    "data-active",
+    "true"
+  );
+  await expect(
+    page.getByRole("dialog", { name: / controls$/ })
+  ).toBeVisible({ timeout: 1500 });
+  await page.mouse.up();
+}
+
 test.beforeEach(async ({ page }) => {
   await installHearthTestHarness(page);
   await page.goto("/");
@@ -85,6 +104,153 @@ test("controls call Home Assistant services", async ({ page }) => {
         }),
       ])
     );
+});
+
+test("light card distinguishes tapping, dragging, and holding", async ({ page }) => {
+  const card = page.locator('[data-light-card="light.test_light"]');
+  const box = await card.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.evaluate(() => {
+    (window as unknown as TestWindow).__haMessages = [];
+  });
+  await page.mouse.move(box!.x + box!.width * 0.25, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + box!.width * 0.75, box!.y + box!.height / 2);
+  await expect
+    .poll(() =>
+      card.evaluate((element) => {
+        const fill = element.querySelector<HTMLElement>(
+          "[data-light-brightness-fill]"
+        );
+        return fill ? fill.getBoundingClientRect().width / element.clientWidth : 0;
+      })
+    )
+    .toBeGreaterThan(0.72);
+  await page.waitForTimeout(250);
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        return (window as unknown as TestWindow).__haMessages.find(
+          (message) =>
+            message.type === "call_service" &&
+            message.domain === "light" &&
+            message.service === "turn_on" &&
+            typeof message.service_data?.brightness === "number"
+        )?.service_data?.brightness;
+      })
+    )
+    .toBe(191);
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as TestWindow).__haMessages.some(
+        (message) => message.service === "toggle"
+      )
+    )
+  ).toBe(false);
+  await page.mouse.up();
+
+  await page.evaluate(() => {
+    (window as unknown as TestWindow).__haMessages = [];
+  });
+  await page.mouse.move(box!.x + box!.width * 0.75, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x, box!.y + box!.height / 2);
+  await page.mouse.up();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as unknown as TestWindow).__haMessages.some(
+          (message) =>
+            message.type === "call_service" &&
+            message.domain === "light" &&
+            message.service === "turn_off"
+        )
+      )
+    )
+    .toBe(true);
+
+  await openLightControls(page);
+  await expect(
+    page.getByRole("dialog", { name: "Test Light controls" })
+  ).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Light brightness" })).toBeVisible();
+  await expect(page.getByLabel("Light colour picker")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Colour" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Temperature" })).toBeVisible();
+});
+
+test("light colour presets save, apply, clear, and persist", async ({ page }) => {
+  await openLightControls(page);
+  const emptyPreset = page.getByRole("button", { name: "Save colour preset 1" });
+  await emptyPreset.click();
+
+  const savedPreset = page.getByRole("button", {
+    name: /Apply colour preset 1/,
+  });
+  await expect(savedPreset).toBeVisible();
+  expect(
+    await page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem("hearth-settings") ?? "{}");
+      return stored.state.settings.lightColorPresets["light.test_light"][0];
+    })
+  ).toMatch(/^#[0-9a-f]{6}$/);
+
+  await page.evaluate(() => {
+    (window as unknown as TestWindow).__haMessages = [];
+  });
+  await savedPreset.click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as unknown as TestWindow).__haMessages.some(
+          (message) =>
+            message.type === "call_service" &&
+            message.domain === "light" &&
+            message.service === "turn_on" &&
+            Array.isArray(message.service_data?.rgb_color)
+        )
+      )
+    )
+    .toBe(true);
+
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toBe("Clear colour preset 1?");
+    await dialog.accept();
+  });
+  const presetBox = await savedPreset.boundingBox();
+  expect(presetBox).not.toBeNull();
+  await page.mouse.move(
+    presetBox!.x + presetBox!.width / 2,
+    presetBox!.y + presetBox!.height / 2
+  );
+  await page.mouse.down();
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+  await expect(
+    page.getByRole("button", { name: "Save colour preset 1" })
+  ).toBeVisible();
+});
+
+test("temperature-only lights show matching detailed controls", async ({ page }) => {
+  await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem("hearth-settings") ?? "{}");
+    stored.state.settings.pages[0].cards[0].entityId =
+      "light.test_temperature_only";
+    localStorage.setItem("hearth-settings", JSON.stringify(stored));
+  });
+  await page.reload();
+  await expect(page.locator('[title="connected"]')).toBeVisible();
+  await page.waitForTimeout(INTERACTION_GUARD_SETTLE_MS);
+  await openLightControls(page, "light.test_temperature_only");
+
+  await expect(
+    page.getByRole("slider", { name: "Light colour temperature" })
+  ).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Light brightness" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Colour" })).toHaveCount(0);
+  await expect(page.getByRole("slider", { name: "Colour hue" })).toHaveCount(0);
 });
 
 test("fan speed slider has a reliable pointer target", async ({ page }) => {
@@ -189,9 +355,9 @@ test("clock weather content stays separated on an iPhone-sized viewport", async 
 });
 
 test("offline controls stay locked until reconnection", async ({ page }) => {
-  await page.getByRole("button", { name: "Show sliders" }).click();
+  await openLightControls(page);
 
-  const brightness = page.getByRole("slider", { name: "Brightness" });
+  const brightness = page.getByRole("slider", { name: "Light brightness" });
   const fanSpeed = page.locator('input[type="range"][min="1"][max="9"]');
   await expect(brightness).toBeVisible();
   const brightnessBefore = await brightness.inputValue();
@@ -571,7 +737,7 @@ test("automatic PWA recovery stops a repeated reload loop", async ({ page }) => 
 test("settings reports the installed PWA build", async ({ page }) => {
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(
-    page.getByText("v1.0.3 (development)", { exact: true })
+    page.getByText("v1.1.0 (development)", { exact: true })
   ).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
 
@@ -606,7 +772,7 @@ test("settings exposes sanitized runtime diagnostics", async ({ page }) => {
   expect(copied).not.toContain("test-token");
   expect(copied).not.toContain("127.0.0.1:4173");
   expect(copied).not.toContain("go2rtc.test");
-  expect(report.hearth.releaseVersion).toBe("1.0.3");
+  expect(report.hearth.releaseVersion).toBe("1.1.0");
   expect(report.hearth.buildCommit).toBe("development");
   expect(report.configuration.homeAssistantConfigured).toBe(true);
   expect(report.homeAssistant.connectionStatus).toBe("connected");

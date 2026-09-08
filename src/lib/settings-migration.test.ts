@@ -91,4 +91,17 @@ describe("settings migration", () => {
       { i: "sensor", x: 8, y: 3, w: 4, h: 2 },
     ]);
   });
+
+  it("normalizes five colour preset slots per light entity", () => {
+    const settings = mergePersistedSettings({
+      lightColorPresets: {
+        "light.lounge": ["#AA00FF", null, "invalid", "#00ff00", null, "#ffffff"],
+        "sensor.wrong_domain": ["#ffffff"],
+      },
+    });
+
+    expect(settings.lightColorPresets).toEqual({
+      "light.lounge": ["#aa00ff", null, null, "#00ff00", null],
+    });
+  });
 });
