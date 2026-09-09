@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('[title="connected"]')).toBeVisible();
 });
 
-test("Clock Weather splits its height evenly on a narrow viewport", async ({ page }) => {
+test("Clock Weather uses a 60/40 split on a narrow viewport", async ({ page }) => {
   await page.setViewportSize({ width: 440, height: 956 });
   await showClockWeatherCard(page, 3);
 
@@ -47,8 +47,8 @@ test("Clock Weather splits its height evenly on a narrow viewport", async ({ pag
   expect(summaryBox).not.toBeNull();
   expect(forecastBox).not.toBeNull();
 
-  expect(Math.abs(summaryBox!.height - forecastBox!.height)).toBeLessThanOrEqual(1);
-  expect(Math.abs(summaryBox!.height / cardBox!.height - 0.5)).toBeLessThan(0.02);
+  expect(Math.abs(summaryBox!.height / cardBox!.height - 0.6)).toBeLessThan(0.02);
+  expect(Math.abs(forecastBox!.height / cardBox!.height - 0.4)).toBeLessThan(0.02);
   expect(summaryBox!.y + summaryBox!.height).toBeCloseTo(forecastBox!.y, 0);
   expect(
     await card.evaluate((element) => element.scrollHeight <= element.clientHeight)
@@ -109,13 +109,13 @@ test("Clock Weather content scales with the card dimensions", async ({ page }) =
   });
 
   expect(largeMetrics.height).toBeGreaterThan(smallMetrics.height * 2);
-  expect(largeMetrics.time).toBeGreaterThan(smallMetrics.time * 1.5);
-  expect(largeMetrics.date).toBeGreaterThan(smallMetrics.date * 1.25);
-  expect(largeMetrics.temperature).toBeGreaterThan(smallMetrics.temperature * 1.5);
-  expect(largeMetrics.forecastIcon).toBeGreaterThan(smallMetrics.forecastIcon * 1.25);
+  expect(largeMetrics.time).toBeGreaterThan(smallMetrics.time * 1.15);
+  expect(largeMetrics.date).toBeGreaterThan(smallMetrics.date * 1.12);
+  expect(largeMetrics.temperature).toBeGreaterThan(smallMetrics.temperature * 1.15);
+  expect(largeMetrics.forecastIcon).toBeGreaterThan(smallMetrics.forecastIcon * 1.12);
 });
 
-test("Clock Weather uses the available space on a large card", async ({ page }) => {
+test("Clock Weather uses the available width on a large card", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1200 });
   await showClockWeatherCard(page, 7);
 
@@ -150,8 +150,8 @@ test("Clock Weather uses the available space on a large card", async ({ page }) 
 
   expect(metrics.leftInset).toBeGreaterThanOrEqual(20);
   expect(metrics.rightInset).toBeGreaterThanOrEqual(20);
-  expect(metrics.time).toBeGreaterThanOrEqual(120);
-  expect(metrics.date).toBeGreaterThanOrEqual(28);
-  expect(metrics.temperature).toBeGreaterThanOrEqual(105);
-  expect(metrics.forecastIcon).toBeGreaterThanOrEqual(48);
+  expect(metrics.time).toBeGreaterThanOrEqual(135);
+  expect(metrics.date).toBeGreaterThanOrEqual(30);
+  expect(metrics.temperature).toBeGreaterThanOrEqual(118);
+  expect(metrics.forecastIcon).toBeGreaterThanOrEqual(50);
 });

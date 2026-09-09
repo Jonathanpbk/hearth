@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { InteractiveCard } from "../InteractiveCard";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -11,7 +11,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { getConnection } from "../../lib/ha-connection";
 import type { WeatherEntityAttributes, WeatherForecastDay } from "../../types/weather";
 import { isUnavailableEntity } from "../../lib/entity-state";
-import { millisecondsUntilNextMinute } from "../../lib/clock";
+import { formatCompactDate, millisecondsUntilNextMinute } from "../../lib/clock";
 
 const CONDITION_ICONS: Record<string, LucideIcon> = {
   sunny: Sun,
@@ -36,9 +36,30 @@ const CONDITION_ICONS: Record<string, LucideIcon> = {
   exceptional: AlertTriangle,
 };
 
-function ConditionIcon({ condition, className }: { condition: string; className?: string }) {
+const CARD_SIZES = {
+  clock: "clamp(2.75rem, calc(8cqw + 7cqh), 10.5rem)",
+  date: "clamp(0.875rem, calc(1.8cqw + 1.6cqh), 2.5rem)",
+  currentIcon: "clamp(2rem, calc(4cqw + 4cqh), 5.75rem)",
+  currentTemperature: "clamp(2.5rem, calc(7cqw + 6cqh), 8.75rem)",
+  condition: "clamp(0.75rem, calc(1.7cqw + 1.1cqh), 1.9rem)",
+  stat: "clamp(0.7rem, calc(1.35cqw + 0.9cqh), 1.55rem)",
+  forecastDay: "clamp(0.7rem, calc(1.2cqw + 1.1cqh), 1.5rem)",
+  forecastIcon: "clamp(1.35rem, calc(3cqw + 2.7cqh), 4rem)",
+  forecastHigh: "clamp(0.9rem, calc(1.8cqw + 1.6cqh), 2.25rem)",
+  forecastLow: "clamp(0.75rem, calc(1.45cqw + 1.3cqh), 1.75rem)",
+} as const;
+
+function ConditionIcon({
+  condition,
+  className,
+  style,
+}: {
+  condition: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
   const Icon = CONDITION_ICONS[condition] ?? Cloud;
-  return <Icon className={className} />;
+  return <Icon className={className} style={style} />;
 }
 
 function ForecastDay({ day, isHottest }: { day: WeatherForecastDay; isHottest: boolean }) {
@@ -47,19 +68,29 @@ function ForecastDay({ day, isHottest }: { day: WeatherForecastDay; isHottest: b
   return (
     <div
       data-forecast-day
-      className="flex h-full min-w-0 flex-col items-center justify-center gap-[clamp(0.1rem,0.45cqmin,0.4rem)]"
+      className="flex h-full min-w-0 flex-col items-center justify-center gap-[clamp(0.08rem,0.35cqmin,0.3rem)]"
     >
-      <span className={`text-[clamp(0.7rem,2.8cqmin,1.35rem)] font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}>
+      <span
+        className={`font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}
+        style={{ fontSize: CARD_SIZES.forecastDay }}
+      >
         {abbrev}
       </span>
       <ConditionIcon
         condition={day.condition}
-        className="h-[clamp(1.35rem,7cqmin,4.25rem)] w-[clamp(1.35rem,7cqmin,4.25rem)] text-white/40"
+        className="text-white/40"
+        style={{ width: CARD_SIZES.forecastIcon, height: CARD_SIZES.forecastIcon }}
       />
-      <span className={`text-[clamp(0.9rem,4.2cqmin,2rem)] font-bold tabular-nums leading-none ${isHottest ? "text-[#ffc174]" : "text-white"}`}>
+      <span
+        className={`font-bold tabular-nums leading-none ${isHottest ? "text-[#ffc174]" : "text-white"}`}
+        style={{ fontSize: CARD_SIZES.forecastHigh }}
+      >
         {Math.round(day.temperature)}°
       </span>
-      <span className="text-[clamp(0.75rem,3.35cqmin,1.5rem)] text-white/30 tabular-nums leading-none">
+      <span
+        className="text-white/30 tabular-nums leading-none"
+        style={{ fontSize: CARD_SIZES.forecastLow }}
+      >
         {Math.round(day.templow ?? day.temperature)}°
       </span>
     </div>
@@ -118,9 +149,7 @@ export function ClockWeatherCard() {
       ? String(h % 12 || 12)
       : String(h).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
-  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
-  const monthStr = now.toLocaleDateString("en-US", { month: "long" });
-  const dateStr = `${weekday}, ${monthStr} ${now.getDate()}`;
+  const dateStr = formatCompactDate(now);
 
   // ── Weather ───────────────────────────────────────────────────────────────
   const weatherAvailable = entity !== undefined && !isUnavailableEntity(entity);
@@ -139,7 +168,7 @@ export function ClockWeatherCard() {
         contain: "layout paint",
         containerType: "size",
         display: "grid",
-        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridTemplateRows: "minmax(0, 3fr) minmax(0, 2fr)",
       }}
     >
       {/* ── Row 1: clock (left) + weather (right) ────────────────────────── */}
@@ -153,14 +182,16 @@ export function ClockWeatherCard() {
           <div className="flex items-baseline leading-none">
             <span
               data-clock-time
-              className="text-[clamp(2.75rem,17cqmin,8rem)] font-bold tabular-nums text-white tracking-tight"
+              className="font-bold tabular-nums text-white tracking-tight"
+              style={{ fontSize: CARD_SIZES.clock }}
             >
               {displayHour}:{minutes}
             </span>
           </div>
           <p
             data-clock-date
-            className="mt-[clamp(0.25rem,0.7cqmin,0.6rem)] truncate text-[clamp(0.875rem,4.2cqmin,2rem)] font-medium leading-none text-[#ffc174]"
+            className="mt-[clamp(0.25rem,0.7cqmin,0.6rem)] truncate font-medium leading-none text-[#ffc174]"
+            style={{ fontSize: CARD_SIZES.date }}
           >
             {dateStr}
           </p>
@@ -178,29 +209,40 @@ export function ClockWeatherCard() {
               <div className="flex items-center gap-[clamp(0.4rem,1.2cqmin,1rem)]">
                 <ConditionIcon
                   condition={condition}
-                  className="h-[clamp(2rem,9.2cqmin,5rem)] w-[clamp(2rem,9.2cqmin,5rem)] shrink-0 text-[#ffc174]"
+                  className="shrink-0 text-[#ffc174]"
+                  style={{ width: CARD_SIZES.currentIcon, height: CARD_SIZES.currentIcon }}
                 />
                 <span
                   data-current-temperature
-                  className="text-[clamp(2.5rem,15cqmin,7rem)] font-bold tabular-nums leading-none text-[#ffc174]"
+                  className="font-bold tabular-nums leading-none text-[#ffc174]"
+                  style={{ fontSize: CARD_SIZES.currentTemperature }}
                 >
                   {attrs?.temperature != null ? `${Math.round(attrs.temperature)}°` : "—"}
                 </span>
               </div>
               {/* Condition name */}
-              <p className="mt-[clamp(0.2rem,0.5cqmin,0.5rem)] max-w-full truncate text-[clamp(0.75rem,3.4cqmin,1.6rem)] uppercase tracking-widest leading-none text-[#ffc174]/70">
+              <p
+                className="mt-[clamp(0.2rem,0.5cqmin,0.5rem)] max-w-full truncate uppercase tracking-widest leading-none text-[#ffc174]/70"
+                style={{ fontSize: CARD_SIZES.condition }}
+              >
                 {condition.replace(/-/g, " ")}
               </p>
               {/* Humidity + wind */}
               {(attrs?.humidity != null || attrs?.wind_speed != null) && (
                 <div className="mt-[clamp(0.2rem,0.5cqmin,0.5rem)] flex gap-[clamp(0.5rem,1.4cqmin,1.1rem)]">
                   {attrs?.humidity != null && (
-                    <span className="text-[clamp(0.7rem,3cqmin,1.35rem)] text-[#ffc174]/55 tabular-nums">
+                    <span
+                      className="text-[#ffc174]/55 tabular-nums"
+                      style={{ fontSize: CARD_SIZES.stat }}
+                    >
                       {Math.round(attrs.humidity)}%
                     </span>
                   )}
                   {attrs?.wind_speed != null && (
-                    <span className="text-[clamp(0.7rem,3cqmin,1.35rem)] text-[#ffc174]/55 tabular-nums">
+                    <span
+                      className="text-[#ffc174]/55 tabular-nums"
+                      style={{ fontSize: CARD_SIZES.stat }}
+                    >
                       {Math.round(attrs.wind_speed)}&thinsp;{attrs.wind_speed_unit ?? "km/h"}
                     </span>
                   )}
