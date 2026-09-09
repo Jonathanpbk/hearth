@@ -115,12 +115,13 @@ test("Clock Weather content scales with the card dimensions", async ({ page }) =
   expect(largeMetrics.forecastIcon).toBeGreaterThan(smallMetrics.forecastIcon * 1.12);
 });
 
-test("Clock Weather uses the available width on a large card", async ({ page }) => {
+test("Clock Weather summary uses the available space on a large card", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1200 });
   await showClockWeatherCard(page, 7);
 
   const card = page.locator('[data-dashboard-card="clock-card"]');
   const metrics = await card.evaluate((element) => {
+    const summary = element.querySelector<HTMLElement>("[data-clock-weather-summary]");
     const time = element.querySelector<HTMLElement>("[data-clock-time]");
     const date = element.querySelector<HTMLElement>("[data-clock-date]");
     const temperature = element.querySelector<HTMLElement>(
@@ -130,17 +131,20 @@ test("Clock Weather uses the available width on a large card", async ({ page }) 
       "[data-forecast-day] svg"
     );
 
-    if (!time || !date || !temperature || !forecastIcon) {
+    if (!summary || !time || !date || !temperature || !forecastIcon) {
       throw new Error("Missing Clock Weather density elements");
     }
 
     const cardBox = element.getBoundingClientRect();
     const timeBox = time.getBoundingClientRect();
     const temperatureBox = temperature.getBoundingClientRect();
+    const summaryStyle = getComputedStyle(summary);
 
     return {
       leftInset: timeBox.left - cardBox.left,
       rightInset: cardBox.right - temperatureBox.right,
+      paddingTop: Number.parseFloat(summaryStyle.paddingTop),
+      paddingBottom: Number.parseFloat(summaryStyle.paddingBottom),
       time: Number.parseFloat(getComputedStyle(time).fontSize),
       date: Number.parseFloat(getComputedStyle(date).fontSize),
       temperature: Number.parseFloat(getComputedStyle(temperature).fontSize),
@@ -150,8 +154,10 @@ test("Clock Weather uses the available width on a large card", async ({ page }) 
 
   expect(metrics.leftInset).toBeGreaterThanOrEqual(20);
   expect(metrics.rightInset).toBeGreaterThanOrEqual(20);
-  expect(metrics.time).toBeGreaterThanOrEqual(135);
-  expect(metrics.date).toBeGreaterThanOrEqual(30);
-  expect(metrics.temperature).toBeGreaterThanOrEqual(118);
+  expect(metrics.paddingTop).toBeLessThanOrEqual(3);
+  expect(metrics.paddingBottom).toBeLessThanOrEqual(3);
+  expect(metrics.time).toBeGreaterThanOrEqual(150);
+  expect(metrics.date).toBeGreaterThanOrEqual(32);
+  expect(metrics.temperature).toBeGreaterThanOrEqual(128);
   expect(metrics.forecastIcon).toBeGreaterThanOrEqual(50);
 });
