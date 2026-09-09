@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { installHearthTestHarness } from "./ha-mock";
 
+const INTERACTION_GUARD_SETTLE_MS = 600;
+
 async function openCustomOscillationSettings(page: Page) {
   const button = page.getByRole("button", { name: "Custom oscillation" });
   await expect(button).toBeVisible();
@@ -15,6 +17,7 @@ test.beforeEach(async ({ page }) => {
   await installHearthTestHarness(page);
   await page.goto("/");
   await expect(page.locator('[title="connected"]')).toBeVisible();
+  await page.waitForTimeout(INTERACTION_GUARD_SETTLE_MS);
 });
 
 test("Dreo custom oscillation popup keeps every stepper control inside its panel", async ({ page }) => {
