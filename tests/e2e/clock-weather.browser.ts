@@ -121,7 +121,6 @@ test("Clock Weather uses the available space on a large card", async ({ page }) 
 
   const card = page.locator('[data-dashboard-card="clock-card"]');
   const metrics = await card.evaluate((element) => {
-    const summary = element.querySelector<HTMLElement>("[data-clock-weather-summary]");
     const time = element.querySelector<HTMLElement>("[data-clock-time]");
     const date = element.querySelector<HTMLElement>("[data-clock-date]");
     const temperature = element.querySelector<HTMLElement>(
@@ -131,16 +130,17 @@ test("Clock Weather uses the available space on a large card", async ({ page }) 
       "[data-forecast-day] svg"
     );
 
-    if (!summary || !time || !date || !temperature || !forecastIcon) {
+    if (!time || !date || !temperature || !forecastIcon) {
       throw new Error("Missing Clock Weather density elements");
     }
 
     const cardBox = element.getBoundingClientRect();
-    const summaryBox = summary.getBoundingClientRect();
+    const timeBox = time.getBoundingClientRect();
+    const temperatureBox = temperature.getBoundingClientRect();
 
     return {
-      leftInset: summaryBox.left - cardBox.left,
-      rightInset: cardBox.right - summaryBox.right,
+      leftInset: timeBox.left - cardBox.left,
+      rightInset: cardBox.right - temperatureBox.right,
       time: Number.parseFloat(getComputedStyle(time).fontSize),
       date: Number.parseFloat(getComputedStyle(date).fontSize),
       temperature: Number.parseFloat(getComputedStyle(temperature).fontSize),
