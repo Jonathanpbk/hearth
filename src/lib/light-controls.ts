@@ -18,8 +18,10 @@ export function localColorOverrideToClear(
   currentMode: string | undefined
 ): LocalColorOverride | null {
   if (!currentMode || currentMode === previousMode) return null;
-  if (currentMode === "color_temp") return "rgb";
-  if (isRgbLightColorMode(currentMode)) return "color_temp";
+  if (currentMode === "color_temp" && previousMode !== "color_temp") return "rgb";
+  if (previousMode === "color_temp" && isRgbLightColorMode(currentMode)) {
+    return "color_temp";
+  }
   return null;
 }
 
