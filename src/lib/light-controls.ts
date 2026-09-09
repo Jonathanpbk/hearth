@@ -4,7 +4,24 @@ export const LIGHT_UPDATE_DEBOUNCE_MS = 150;
 export const LIGHT_PRESET_HOLD_DURATION_MS = 650;
 export const LIGHT_PRESET_COUNT = 5;
 
+const RGB_LIGHT_COLOR_MODES = new Set(["rgb", "rgbw", "rgbww", "hs", "xy"]);
+
 export type RgbColor = [number, number, number];
+export type LocalColorOverride = "rgb" | "color_temp";
+
+export function isRgbLightColorMode(mode: string | undefined): boolean {
+  return mode !== undefined && RGB_LIGHT_COLOR_MODES.has(mode);
+}
+
+export function localColorOverrideToClear(
+  previousMode: string | undefined,
+  currentMode: string | undefined
+): LocalColorOverride | null {
+  if (!currentMode || currentMode === previousMode) return null;
+  if (currentMode === "color_temp") return "rgb";
+  if (isRgbLightColorMode(currentMode)) return "color_temp";
+  return null;
+}
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -91,7 +108,7 @@ export function hsvToRgb(hue: number, saturation: number): RgbColor {
   else if (section < 2) [red, green] = [intermediate, chroma];
   else if (section < 3) [green, blue] = [chroma, intermediate];
   else if (section < 4) [green, blue] = [intermediate, chroma];
-  else if (section < 5) [red, blue] = [chroma, intermediate];
+  else if (section < 5) [red, blue] = [intermediate, chroma];
   else [red, blue] = [chroma, intermediate];
 
   const valueOffset = 1 - chroma;
