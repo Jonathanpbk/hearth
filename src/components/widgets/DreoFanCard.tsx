@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { ArrowLeftRight, ArrowUpDown, Footprints, ChevronDown, ChevronUp, ScanLine } from "lucide-react";
+import { ArrowLeftRight, ArrowUpDown, Footprints, ChevronDown, Minus, Plus, ScanLine } from "lucide-react";
 import { InteractiveCard } from "../InteractiveCard";
 import { useHAEntity } from "../../hooks/useHAEntity";
 import { getConnection } from "../../lib/ha-connection";
@@ -7,6 +7,12 @@ import { callService, turnOn, turnOff, toggle, runScript, setFanPercentage, setF
 import { useEntityStore } from "../../store/useEntityStore";
 import { getEntityBlockReason } from "../../lib/entity-state";
 import { executeServiceAction } from "../../lib/service-action";
+import {
+  clampDreoCustomOscillationDelay,
+  DREO_CUSTOM_OSC_DELAY_MAX,
+  DREO_CUSTOM_OSC_DELAY_MIN,
+  shouldStopDreoCustomOscillation,
+} from "../../lib/dreo-fan";
 import { EntityFallbackCard, EntityStatusBadge } from "../EntityStatus";
 
 const FAN_ID        = "fan.dreo";
@@ -89,32 +95,32 @@ function NumStepper({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-xs text-white/50 shrink-0">{label}</span>
-      <div className="flex items-center gap-0.5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg bg-white/[0.025] px-2 py-1">
+      <span className="min-w-0 text-xs text-white/55">{label}</span>
+      <div className="grid grid-cols-[2.75rem_2.25rem_2.75rem] items-center">
         <button
           onClick={(e) => { e.stopPropagation(); adjust(-step); }}
           disabled={Boolean(blockReason)}
           aria-label={`Decrease ${label}`}
-          className="w-11 h-11 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
         >
-          <ChevronDown className="h-3.5 w-3.5" />
+          <Minus className="h-3.5 w-3.5" />
         </button>
-        <span className="text-xs font-mono text-white w-8 text-center tabular-nums">{value}</span>
+        <span className="w-9 text-center text-xs font-mono tabular-nums text-white/90">{value}</span>
         <button
           onClick={(e) => { e.stopPropagation(); adjust(step); }}
           disabled={Boolean(blockReason)}
           aria-label={`Increase ${label}`}
-          className="w-11 h-11 flex items-center justify-center rounded text-white/40 hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-white/45 hover:bg-white/[0.06] hover:text-white/80 transition-colors disabled:cursor-not-allowed disabled:opacity-35 disabled:pointer-events-none"
         >
-          <ChevronUp className="h-3.5 w-3.5" />
+          <Plus className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
   );
 }
 
-function CustomOscButton() {
+function CustomOscButton({ fanState }: { fanState: string | undefined }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -125,6 +131,13 @@ function CustomOscButton() {
   const connectionStatus = useEntityStore((state) => state.connectionStatus);
   const blockReason = getEntityBlockReason(customOsc, connectionStatus);
 
+  const helperActive = customOsc?.state === "on";
+  const fanIsOn = fanState === "on";
+  const isActive = helperActive && fanIsOn;
+  const leftVal  = Math.round(Number(leftAngle?.state  ?? -15));
+  const rightVal = Math.round(Number(rightAngle?.state ?? 15));
+  const delayVal = clampDreoCustomOscillationDelay(Number(oscDelay?.state ?? 5));
+
   useEffect(() => {
     if (!open) return;
     function onOutside(e: MouseEvent) {
@@ -134,14 +147,26 @@ function CustomOscButton() {
     return () => document.removeEventListener("mousedown", onOutside);
   }, [open]);
 
-  const isActive = customOsc?.state === "on";
-  const leftVal  = Math.round(Number(leftAngle?.state  ?? -15));
-  const rightVal = Math.round(Number(rightAngle?.state ?? 15));
-  const delayVal = Math.round(Number(oscDelay?.state   ?? 5));
+  useEffect(() => {
+    if (
+      !shouldStopDreoCustomOscillation({
+        fanState,
+        customOscillationState: customOsc?.state,
+        controlsBlocked: Boolean(blockReason),
+      })
+    ) {
+      return;
+    }
+
+    setOpen(false);
+    void executeServiceAction("Stop custom oscillation because the fan is off", () =>
+      turnOff(getConnection(), CUSTOM_OSC_ID)
+    );
+  }, [fanState, customOsc?.state, blockReason]);
 
   function handleStartStop(e: React.MouseEvent) {
     e.stopPropagation();
-    if (blockReason) return;
+    if (blockReason || !fanIsOn) return;
     void executeServiceAction("Toggle custom oscillation", () =>
       toggle(getConnection(), CUSTOM_OSC_ID)
     );
@@ -167,16 +192,25 @@ function CustomOscButton() {
 
       {open && (
         <div
-          className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 w-44 rounded-xl border border-white/[0.08] shadow-xl p-3 flex flex-col gap-2.5"
+          role="group"
+          aria-label="Custom oscillation settings"
+          className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 w-56 rounded-xl border border-white/[0.08] shadow-xl p-3.5 flex flex-col gap-2"
           style={{ background: "#3a3a3c" }}
           onClick={(e) => e.stopPropagation()}
         >
           <NumStepper label="Left" value={leftVal} min={-60} max={60} step={1} entityId={LEFT_ANGLE_ID} />
           <NumStepper label="Right" value={rightVal} min={-60} max={60} step={1} entityId={RIGHT_ANGLE_ID} />
-          <NumStepper label="Delay (s)" value={delayVal} min={1} max={10} step={1} entityId={OSC_DELAY_ID} />
+          <NumStepper
+            label="Delay (s)"
+            value={delayVal}
+            min={DREO_CUSTOM_OSC_DELAY_MIN}
+            max={DREO_CUSTOM_OSC_DELAY_MAX}
+            step={1}
+            entityId={OSC_DELAY_ID}
+          />
           <button
             onClick={handleStartStop}
-            disabled={Boolean(blockReason)}
+            disabled={Boolean(blockReason) || !fanIsOn}
             className={`w-full min-h-11 py-1.5 rounded-lg text-xs font-semibold transition-colors border
               ${isActive
                 ? "bg-[#ffc174]/20 text-[#ffc174] border-[#ffc174]/30"
@@ -391,7 +425,7 @@ export function DreoFanCard() {
           <OscButton active={hOscOn} label="Horizontal oscillation" onClick={() => handleToggleOsc(H_OSC_ID)} disabled={Boolean(hOscBlockReason)}>
             <ArrowLeftRight className="h-4 w-4" />
           </OscButton>
-          <CustomOscButton />
+          <CustomOscButton fanState={fan.state} />
           <OscButton active={vOscOn} label="Vertical oscillation" onClick={() => handleToggleOsc(V_OSC_ID)} disabled={Boolean(vOscBlockReason)}>
             <ArrowUpDown className="h-4 w-4" />
           </OscButton>
