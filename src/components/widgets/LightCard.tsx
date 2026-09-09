@@ -18,6 +18,8 @@ import {
   LIGHT_HOLD_DURATION_MS,
   LIGHT_UPDATE_DEBOUNCE_MS,
   brightnessToPercent,
+  isRgbLightColorMode,
+  localColorOverrideToClear,
   pointerXToBrightness,
   resolveLightDisplayColor,
   type RgbColor,
@@ -38,8 +40,6 @@ interface ActiveGesture {
   mode: GestureMode;
   brightness: number;
 }
-
-const RGB_MODES = new Set(["rgb", "rgbw", "rgbww", "hs", "xy"]);
 
 function colorsMatch(left: RgbColor | null, right: RgbColor | undefined): boolean {
   return Boolean(
@@ -84,7 +84,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
     (mode) => mode !== "onoff" && mode !== "unknown"
   );
   const hasColorTemp = supportedModes.includes("color_temp");
-  const hasRgb = supportedModes.some((mode) => RGB_MODES.has(mode));
+  const hasRgb = supportedModes.some((mode) => isRgbLightColorMode(mode));
   const entityRgb = attrs.rgb_color as RgbColor | undefined;
   const displayBrightness =
     localBrightness ?? brightness ?? (isOn && hasBrightness ? 255 : 0);
@@ -163,9 +163,9 @@ export function LightCard({ entityId, titleOverride }: Props) {
   useEffect(() => {
     const previousColorMode = previousColorModeRef.current;
     previousColorModeRef.current = colorMode;
-    if (!colorMode || colorMode === previousColorMode) return;
+    const overrideToClear = localColorOverrideToClear(previousColorMode, colorMode);
 
-    if (colorMode === "color_temp") {
+    if (overrideToClear === "rgb") {
       rgbRequestRef.current += 1;
       if (rgbTimerRef.current) clearTimeout(rgbTimerRef.current);
       rgbTimerRef.current = null;
@@ -173,7 +173,7 @@ export function LightCard({ entityId, titleOverride }: Props) {
       return;
     }
 
-    if (RGB_MODES.has(colorMode)) {
+    if (overrideToClear === "color_temp") {
       colorTempRequestRef.current += 1;
       if (colorTempTimerRef.current) clearTimeout(colorTempTimerRef.current);
       colorTempTimerRef.current = null;
@@ -409,8 +409,14 @@ export function LightCard({ entityId, titleOverride }: Props) {
           <div
             data-light-hold-progress
             aria-hidden="true"
-            className="light-card-hold-progress absolute inset-x-0 bottom-0 z-20 h-1 origin-left bg-[#ffc174]"
+            className="absolute inset-x-0 bottom-0 z-20 h-1 origin-left bg-[#ffc174]"
             data-active={holding ? "true" : "false"}
+            style={{
+              transform: holding ? "scaleX(1)" : "scaleX(0)",
+              transitionProperty: "transform",
+              transitionDuration: holding ? `${LIGHT_HOLD_DURATION_MS}ms` : "0ms",
+              transitionTimingFunction: "linear",
+            }}
           />
 
           <div className="relative z-10 h-full p-2">
