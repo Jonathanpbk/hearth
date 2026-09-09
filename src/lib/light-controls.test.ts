@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  LIGHT_HOLD_DURATION_MS,
   brightnessToPercent,
   hexToRgb,
   hsvToRgb,
   kelvinToRgb,
+  localColorOverrideToClear,
   normalizePresetColor,
   pointerXToBrightness,
   resolveLightDisplayColor,
@@ -12,6 +14,10 @@ import {
 } from "./light-controls";
 
 describe("light controls", () => {
+  it("opens the Light controls after a half-second hold", () => {
+    expect(LIGHT_HOLD_DURATION_MS).toBe(500);
+  });
+
   it("maps horizontal pointer position to the full brightness range", () => {
     expect(pointerXToBrightness(100, 100, 400)).toBe(0);
     expect(pointerXToBrightness(300, 100, 400)).toBe(128);
@@ -73,5 +79,14 @@ describe("light controls", () => {
         localColorTemp: null,
       })
     ).toEqual([255, 0, 0]);
+  });
+
+  it("clears stale optimistic colour when Home Assistant changes colour mode", () => {
+    expect(localColorOverrideToClear("hs", "color_temp")).toBe("rgb");
+    expect(localColorOverrideToClear("rgb", "color_temp")).toBe("rgb");
+    expect(localColorOverrideToClear("color_temp", "hs")).toBe("color_temp");
+    expect(localColorOverrideToClear("color_temp", "xy")).toBe("color_temp");
+    expect(localColorOverrideToClear("hs", "rgb")).toBeNull();
+    expect(localColorOverrideToClear("color_temp", "color_temp")).toBeNull();
   });
 });

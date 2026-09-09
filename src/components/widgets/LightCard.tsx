@@ -10,7 +10,7 @@ import {
   turnOff,
 } from "../../lib/ha-service";
 import { useEntityStore } from "../../store/useEntityStore";
-import { getEntityBlockReason, isUnavailableEntity } from "../../lib/entity-state";
+import { getEntityBlockReason } from "../../lib/entity-state";
 import { executeServiceAction } from "../../lib/service-action";
 import { EntityFallbackCard, EntityStatusBadge } from "../EntityStatus";
 import {
@@ -18,6 +18,8 @@ import {
   LIGHT_HOLD_DURATION_MS,
   LIGHT_UPDATE_DEBOUNCE_MS,
   brightnessToPercent,
+  isRgbLightColorMode,
+  localColorOverrideToClear,
   pointerXToBrightness,
   resolveLightDisplayColor,
   type RgbColor,
@@ -38,8 +40,6 @@ interface ActiveGesture {
   mode: GestureMode;
   brightness: number;
 }
-
-const RGB_MODES = new Set(["rgb", "rgbw", "rgbww", "hs", "xy"]);
 
 function colorsMatch(left: RgbColor | null, right: RgbColor | undefined): boolean {
   return Boolean(
@@ -78,12 +78,13 @@ export function LightCard({ entityId, titleOverride }: Props) {
   const maxKelvin = (attrs.max_color_temp_kelvin as number | undefined) ?? 6500;
   const colorTempKelvin = attrs.color_temp_kelvin as number | undefined;
   const colorMode = attrs.color_mode as string | undefined;
+  const previousColorModeRef = useRef(colorMode);
   const supportedModes = (attrs.supported_color_modes as string[] | undefined) ?? [];
   const hasBrightness = supportedModes.some(
     (mode) => mode !== "onoff" && mode !== "unknown"
   );
   const hasColorTemp = supportedModes.includes("color_temp");
-  const hasRgb = supportedModes.some((mode) => RGB_MODES.has(mode));
+  const hasRgb = supportedModes.some((mode) => isRgbLightColorMode(mode));
   const entityRgb = attrs.rgb_color as RgbColor | undefined;
   const displayBrightness =
     localBrightness ?? brightness ?? (isOn && hasBrightness ? 255 : 0);
@@ -100,7 +101,6 @@ export function LightCard({ entityId, titleOverride }: Props) {
     maxKelvin,
   });
   const visuallyOn = localBrightness !== null ? localBrightness > 0 : isOn;
-  const stateUnavailable = entity ? isUnavailableEntity(entity) : false;
   const name =
     titleOverride ??
     (attrs.friendly_name as string | undefined) ??
@@ -159,6 +159,27 @@ export function LightCard({ entityId, titleOverride }: Props) {
   useEffect(() => {
     setLocalRgb((current) => (colorsMatch(current, entityRgb) ? null : current));
   }, [entityRgb]);
+
+  useEffect(() => {
+    const previousColorMode = previousColorModeRef.current;
+    previousColorModeRef.current = colorMode;
+    const overrideToClear = localColorOverrideToClear(previousColorMode, colorMode);
+
+    if (overrideToClear === "rgb") {
+      rgbRequestRef.current += 1;
+      if (rgbTimerRef.current) clearTimeout(rgbTimerRef.current);
+      rgbTimerRef.current = null;
+      setLocalRgb(null);
+      return;
+    }
+
+    if (overrideToClear === "color_temp") {
+      colorTempRequestRef.current += 1;
+      if (colorTempTimerRef.current) clearTimeout(colorTempTimerRef.current);
+      colorTempTimerRef.current = null;
+      setLocalColorTemp(null);
+    }
+  }, [colorMode]);
 
   if (!entity) {
     return (
@@ -388,38 +409,20 @@ export function LightCard({ entityId, titleOverride }: Props) {
           <div
             data-light-hold-progress
             aria-hidden="true"
-            className="light-card-hold-progress absolute inset-x-0 bottom-0 z-20 h-1 origin-left bg-[#ffc174]"
+            className="absolute inset-x-0 bottom-0 z-20 h-1 origin-left bg-[#ffc174]"
             data-active={holding ? "true" : "false"}
+            style={{
+              transform: holding ? "scaleX(1)" : "scaleX(0)",
+              transitionProperty: "transform",
+              transitionDuration: holding ? `${LIGHT_HOLD_DURATION_MS}ms` : "0ms",
+              transitionTimingFunction: "linear",
+            }}
           />
 
-          <div className="relative z-10 flex h-full flex-col p-2">
-            <p className={`shrink-0 truncate text-[10px] font-medium uppercase leading-none tracking-widest text-white/45 ${blockReason ? "pr-24" : ""}`}>
+          <div className="relative z-10 h-full p-2">
+            <p className={`truncate text-[10px] font-medium uppercase leading-none tracking-widest text-white/45 ${blockReason ? "pr-24" : ""}`}>
               {name}
             </p>
-            <div className="flex min-h-0 flex-1 items-center">
-              <div className="flex items-baseline gap-0.5 leading-none">
-                <span className={`${stateUnavailable ? "text-lg" : "text-3xl"} font-bold tabular-nums text-white`}>
-                  {stateUnavailable
-                    ? blockReason
-                    : visuallyOn
-                      ? String(brightnessPercent)
-                      : "Off"}
-                </span>
-                {visuallyOn && !stateUnavailable && (
-                  <span className="text-base font-medium text-white/40">%</span>
-                )}
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center justify-between gap-2">
-              <span className="text-[9px] leading-none text-white/30">
-                {hasBrightness ? "Drag brightness" : "Tap to toggle"}
-              </span>
-              {visuallyOn && hasColorTemp && !stateUnavailable && (
-                <span className="text-[9px] tabular-nums leading-none text-white/30">
-                  {displayColorTemp} K
-                </span>
-              )}
-            </div>
           </div>
         </div>
       </InteractiveCard>
