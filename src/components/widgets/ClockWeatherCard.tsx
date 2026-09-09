@@ -45,15 +45,21 @@ function ForecastDay({ day, isHottest }: { day: WeatherForecastDay; isHottest: b
   const date = new Date(day.datetime);
   const abbrev = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
   return (
-    <div className="flex min-w-0 flex-col items-center gap-1">
-      <span className={`text-xs font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}>
+    <div
+      data-forecast-day
+      className="flex h-full min-w-0 flex-col items-center justify-center gap-[clamp(0.15rem,0.8cqmin,0.65rem)]"
+    >
+      <span className={`text-[clamp(0.55rem,1.9cqmin,1rem)] font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}>
         {abbrev}
       </span>
-      <ConditionIcon condition={day.condition} className="h-6 w-6 text-white/40" />
-      <span className={`text-sm font-bold tabular-nums leading-none ${isHottest ? "text-[#ffc174]" : "text-white"}`}>
+      <ConditionIcon
+        condition={day.condition}
+        className="h-[clamp(1.2rem,4.6cqmin,2.75rem)] w-[clamp(1.2rem,4.6cqmin,2.75rem)] text-white/40"
+      />
+      <span className={`text-[clamp(0.75rem,2.8cqmin,1.5rem)] font-bold tabular-nums leading-none ${isHottest ? "text-[#ffc174]" : "text-white"}`}>
         {Math.round(day.temperature)}°
       </span>
-      <span className="text-xs text-white/30 tabular-nums leading-none">
+      <span className="text-[clamp(0.65rem,2.3cqmin,1.2rem)] text-white/30 tabular-nums leading-none">
         {Math.round(day.templow ?? day.temperature)}°
       </span>
     </div>
@@ -131,57 +137,70 @@ export function ClockWeatherCard() {
       className="h-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[var(--color-surface)]"
       style={{
         contain: "layout paint",
+        containerType: "size",
         display: "grid",
-        gridTemplateRows: "minmax(0, 1fr) auto",
+        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
       }}
     >
       {/* ── Row 1: clock (left) + weather (right) ────────────────────────── */}
       <div
         data-clock-weather-summary
-        className="grid min-h-0 grid-cols-2 items-center gap-3 overflow-hidden px-3 py-1.5"
+        className="grid min-h-0 grid-cols-2 items-center gap-[clamp(0.75rem,2cqmin,2rem)] overflow-hidden px-[clamp(0.75rem,2.4cqmin,2rem)] py-[clamp(0.5rem,1.5cqmin,1.25rem)]"
       >
 
         {/* Left — clock */}
-        <div className="flex flex-col justify-center select-none min-w-0">
+        <div className="flex min-w-0 flex-col justify-center select-none">
           <div className="flex items-baseline leading-none">
-            <span className="text-[clamp(2.5rem,13vw,3.75rem)] font-bold tabular-nums text-white tracking-tight">
+            <span
+              data-clock-time
+              className="text-[clamp(2.5rem,12cqmin,6rem)] font-bold tabular-nums text-white tracking-tight"
+            >
               {displayHour}:{minutes}
             </span>
           </div>
-          <p className="mt-2 truncate text-[clamp(0.75rem,3.6vw,1rem)] font-medium leading-none text-[#ffc174]">
+          <p
+            data-clock-date
+            className="mt-[clamp(0.35rem,1cqmin,0.8rem)] truncate text-[clamp(0.8rem,3.1cqmin,1.65rem)] font-medium leading-none text-[#ffc174]"
+          >
             {dateStr}
           </p>
         </div>
 
         {/* Right — weather */}
-        <div className="flex flex-col justify-center items-end min-w-0">
+        <div className="flex min-w-0 flex-col items-end justify-center">
           {!weatherAvailable ? (
-            <p className="text-xs text-white/25 text-right">
+            <p className="text-[clamp(0.65rem,2.2cqmin,1rem)] text-white/25 text-right">
               {weatherEntityId ? "Unavailable" : "No entity set"}
             </p>
           ) : (
             <>
               {/* Icon + temperature */}
-              <div className="flex items-center gap-2">
-                <ConditionIcon condition={condition} className="h-7 w-7 shrink-0 text-[#ffc174] sm:h-8 sm:w-8" />
-                <span className="text-[clamp(2.25rem,11vw,3rem)] font-bold tabular-nums leading-none text-[#ffc174]">
+              <div className="flex items-center gap-[clamp(0.4rem,1.2cqmin,1rem)]">
+                <ConditionIcon
+                  condition={condition}
+                  className="h-[clamp(1.8rem,6.2cqmin,4rem)] w-[clamp(1.8rem,6.2cqmin,4rem)] shrink-0 text-[#ffc174]"
+                />
+                <span
+                  data-current-temperature
+                  className="text-[clamp(2.25rem,10cqmin,5.5rem)] font-bold tabular-nums leading-none text-[#ffc174]"
+                >
                   {attrs?.temperature != null ? `${Math.round(attrs.temperature)}°` : "—"}
                 </span>
               </div>
               {/* Condition name */}
-              <p className="text-xs uppercase tracking-widest text-[#ffc174]/70 mt-1.5 leading-none truncate max-w-full">
+              <p className="mt-[clamp(0.3rem,0.9cqmin,0.75rem)] max-w-full truncate text-[clamp(0.65rem,2.25cqmin,1.2rem)] uppercase tracking-widest leading-none text-[#ffc174]/70">
                 {condition.replace(/-/g, " ")}
               </p>
               {/* Humidity + wind */}
               {(attrs?.humidity != null || attrs?.wind_speed != null) && (
-                <div className="flex gap-2.5 mt-1.5">
+                <div className="mt-[clamp(0.3rem,0.9cqmin,0.75rem)] flex gap-[clamp(0.5rem,1.4cqmin,1.1rem)]">
                   {attrs?.humidity != null && (
-                    <span className="text-xs text-[#ffc174]/55 tabular-nums">
+                    <span className="text-[clamp(0.65rem,2cqmin,1.1rem)] text-[#ffc174]/55 tabular-nums">
                       {Math.round(attrs.humidity)}%
                     </span>
                   )}
                   {attrs?.wind_speed != null && (
-                    <span className="text-xs text-[#ffc174]/55 tabular-nums">
+                    <span className="text-[clamp(0.65rem,2cqmin,1.1rem)] text-[#ffc174]/55 tabular-nums">
                       {Math.round(attrs.wind_speed)}&thinsp;{attrs.wind_speed_unit ?? "km/h"}
                     </span>
                   )}
@@ -192,11 +211,11 @@ export function ClockWeatherCard() {
         </div>
       </div>
 
-      {/* ── Row 2: 7-day forecast strip — full card width ────────────────── */}
+      {/* ── Row 2: forecast strip — full card width ──────────────────────── */}
       {forecastDays.length > 0 && (
         <div
           data-clock-weather-forecast
-          className="min-h-0 items-start overflow-hidden px-1 pb-1.5 pt-1"
+          className="min-h-0 items-center overflow-hidden px-[clamp(0.25rem,1cqmin,1rem)] py-[clamp(0.35rem,1.2cqmin,1rem)]"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${forecastDays.length}, minmax(0, 1fr))`,
