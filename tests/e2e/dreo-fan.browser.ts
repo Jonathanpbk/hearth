@@ -55,6 +55,7 @@ test("Dreo custom oscillation delay uses the numeric stepper", async ({ page }) 
           type?: string;
           domain?: string;
           service?: string;
+          target?: { entity_id?: string };
           service_data?: Record<string, unknown>;
         }>;
       }).__haMessages;
@@ -63,7 +64,7 @@ test("Dreo custom oscillation delay uses the numeric stepper", async ({ page }) 
           message.type === "call_service" &&
           message.domain === "input_number" &&
           message.service === "set_value" &&
-          message.service_data?.entity_id === "input_number.dreo_oscillation_delay" &&
+          message.target?.entity_id === "input_number.dreo_oscillation_delay" &&
           message.service_data?.value === 6
       );
     })
