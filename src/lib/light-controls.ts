@@ -1,4 +1,4 @@
-export const LIGHT_HOLD_DURATION_MS = 1000;
+export const LIGHT_HOLD_DURATION_MS = 500;
 export const LIGHT_DRAG_THRESHOLD_PX = 8;
 export const LIGHT_UPDATE_DEBOUNCE_MS = 150;
 export const LIGHT_PRESET_HOLD_DURATION_MS = 650;
@@ -91,7 +91,7 @@ export function hsvToRgb(hue: number, saturation: number): RgbColor {
   else if (section < 2) [red, green] = [intermediate, chroma];
   else if (section < 3) [green, blue] = [chroma, intermediate];
   else if (section < 4) [green, blue] = [intermediate, chroma];
-  else if (section < 5) [red, blue] = [intermediate, chroma];
+  else if (section < 5) [red, blue] = [chroma, intermediate];
   else [red, blue] = [chroma, intermediate];
 
   const valueOffset = 1 - chroma;
