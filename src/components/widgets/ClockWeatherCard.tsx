@@ -37,12 +37,12 @@ const CONDITION_ICONS: Record<string, LucideIcon> = {
 };
 
 const CARD_SIZES = {
-  clock: "clamp(2.75rem, calc(8cqw + 7cqh), 10.5rem)",
-  date: "clamp(0.875rem, calc(1.8cqw + 1.6cqh), 2.5rem)",
-  currentIcon: "clamp(2rem, calc(4cqw + 4cqh), 5.75rem)",
-  currentTemperature: "clamp(2.5rem, calc(7cqw + 6cqh), 8.75rem)",
-  condition: "clamp(0.75rem, calc(1.7cqw + 1.1cqh), 1.9rem)",
-  stat: "clamp(0.7rem, calc(1.35cqw + 0.9cqh), 1.55rem)",
+  clock: "clamp(2.75rem, calc(8.8cqw + 7.8cqh), 11.5rem)",
+  date: "clamp(0.875rem, calc(1.95cqw + 1.75cqh), 2.75rem)",
+  currentIcon: "clamp(2rem, calc(4.4cqw + 4.4cqh), 6.25rem)",
+  currentTemperature: "clamp(2.5rem, calc(7.7cqw + 6.7cqh), 9.5rem)",
+  condition: "clamp(0.75rem, calc(1.85cqw + 1.2cqh), 2.1rem)",
+  stat: "clamp(0.7rem, calc(1.45cqw + 1cqh), 1.7rem)",
   forecastDay: "clamp(0.7rem, calc(1.2cqw + 1.1cqh), 1.5rem)",
   forecastIcon: "clamp(1.35rem, calc(3cqw + 2.7cqh), 4rem)",
   forecastHigh: "clamp(0.9rem, calc(1.8cqw + 1.6cqh), 2.25rem)",
@@ -174,7 +174,7 @@ export function ClockWeatherCard() {
       {/* ── Row 1: clock (left) + weather (right) ────────────────────────── */}
       <div
         data-clock-weather-summary
-        className="grid min-h-0 grid-cols-2 items-center gap-[clamp(0.75rem,2cqmin,2rem)] overflow-hidden px-[clamp(1.25rem,4.2cqmin,3rem)] py-[clamp(0.15rem,0.4cqmin,0.35rem)]"
+        className="grid min-h-0 grid-cols-2 items-center gap-[clamp(0.75rem,2cqmin,2rem)] overflow-hidden px-[clamp(1.25rem,4.2cqmin,3rem)] py-[clamp(0.05rem,0.15cqmin,0.15rem)]"
       >
 
         {/* Left — clock */}
