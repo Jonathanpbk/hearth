@@ -47,19 +47,19 @@ function ForecastDay({ day, isHottest }: { day: WeatherForecastDay; isHottest: b
   return (
     <div
       data-forecast-day
-      className="flex h-full min-w-0 flex-col items-center justify-center gap-[clamp(0.15rem,0.8cqmin,0.65rem)]"
+      className="flex h-full min-w-0 flex-col items-center justify-center gap-[clamp(0.1rem,0.45cqmin,0.4rem)]"
     >
-      <span className={`text-[clamp(0.55rem,1.9cqmin,1rem)] font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}>
+      <span className={`text-[clamp(0.7rem,2.8cqmin,1.35rem)] font-semibold uppercase tracking-wide leading-none ${isHottest ? "text-[#ffc174]" : "text-white/35"}`}>
         {abbrev}
       </span>
       <ConditionIcon
         condition={day.condition}
-        className="h-[clamp(1.2rem,4.6cqmin,2.75rem)] w-[clamp(1.2rem,4.6cqmin,2.75rem)] text-white/40"
+        className="h-[clamp(1.35rem,7cqmin,4.25rem)] w-[clamp(1.35rem,7cqmin,4.25rem)] text-white/40"
       />
-      <span className={`text-[clamp(0.75rem,2.8cqmin,1.5rem)] font-bold tabular-nums leading-none ${isHottest ? "text-[#ffc174]" : "text-white"}`}>
+      <span className={`text-[clamp(0.9rem,4.2cqmin,2rem)] font-bold tabular-nums leading-none ${isHottest ? "text-[#ffc174]" : "text-white"}`}>
         {Math.round(day.temperature)}°
       </span>
-      <span className="text-[clamp(0.65rem,2.3cqmin,1.2rem)] text-white/30 tabular-nums leading-none">
+      <span className="text-[clamp(0.75rem,3.35cqmin,1.5rem)] text-white/30 tabular-nums leading-none">
         {Math.round(day.templow ?? day.temperature)}°
       </span>
     </div>
@@ -145,7 +145,7 @@ export function ClockWeatherCard() {
       {/* ── Row 1: clock (left) + weather (right) ────────────────────────── */}
       <div
         data-clock-weather-summary
-        className="grid min-h-0 grid-cols-2 items-center gap-[clamp(0.75rem,2cqmin,2rem)] overflow-hidden px-[clamp(0.75rem,2.4cqmin,2rem)] py-[clamp(0.5rem,1.5cqmin,1.25rem)]"
+        className="grid min-h-0 grid-cols-2 items-center gap-[clamp(0.75rem,2cqmin,2rem)] overflow-hidden px-[clamp(1.25rem,4.2cqmin,3rem)] py-[clamp(0.15rem,0.4cqmin,0.35rem)]"
       >
 
         {/* Left — clock */}
@@ -153,14 +153,14 @@ export function ClockWeatherCard() {
           <div className="flex items-baseline leading-none">
             <span
               data-clock-time
-              className="text-[clamp(2.5rem,12cqmin,6rem)] font-bold tabular-nums text-white tracking-tight"
+              className="text-[clamp(2.75rem,17cqmin,8rem)] font-bold tabular-nums text-white tracking-tight"
             >
               {displayHour}:{minutes}
             </span>
           </div>
           <p
             data-clock-date
-            className="mt-[clamp(0.35rem,1cqmin,0.8rem)] truncate text-[clamp(0.8rem,3.1cqmin,1.65rem)] font-medium leading-none text-[#ffc174]"
+            className="mt-[clamp(0.25rem,0.7cqmin,0.6rem)] truncate text-[clamp(0.875rem,4.2cqmin,2rem)] font-medium leading-none text-[#ffc174]"
           >
             {dateStr}
           </p>
@@ -169,7 +169,7 @@ export function ClockWeatherCard() {
         {/* Right — weather */}
         <div className="flex min-w-0 flex-col items-end justify-center">
           {!weatherAvailable ? (
-            <p className="text-[clamp(0.65rem,2.2cqmin,1rem)] text-white/25 text-right">
+            <p className="text-[clamp(0.75rem,2.8cqmin,1.2rem)] text-white/25 text-right">
               {weatherEntityId ? "Unavailable" : "No entity set"}
             </p>
           ) : (
@@ -178,29 +178,29 @@ export function ClockWeatherCard() {
               <div className="flex items-center gap-[clamp(0.4rem,1.2cqmin,1rem)]">
                 <ConditionIcon
                   condition={condition}
-                  className="h-[clamp(1.8rem,6.2cqmin,4rem)] w-[clamp(1.8rem,6.2cqmin,4rem)] shrink-0 text-[#ffc174]"
+                  className="h-[clamp(2rem,9.2cqmin,5rem)] w-[clamp(2rem,9.2cqmin,5rem)] shrink-0 text-[#ffc174]"
                 />
                 <span
                   data-current-temperature
-                  className="text-[clamp(2.25rem,10cqmin,5.5rem)] font-bold tabular-nums leading-none text-[#ffc174]"
+                  className="text-[clamp(2.5rem,15cqmin,7rem)] font-bold tabular-nums leading-none text-[#ffc174]"
                 >
                   {attrs?.temperature != null ? `${Math.round(attrs.temperature)}°` : "—"}
                 </span>
               </div>
               {/* Condition name */}
-              <p className="mt-[clamp(0.3rem,0.9cqmin,0.75rem)] max-w-full truncate text-[clamp(0.65rem,2.25cqmin,1.2rem)] uppercase tracking-widest leading-none text-[#ffc174]/70">
+              <p className="mt-[clamp(0.2rem,0.5cqmin,0.5rem)] max-w-full truncate text-[clamp(0.75rem,3.4cqmin,1.6rem)] uppercase tracking-widest leading-none text-[#ffc174]/70">
                 {condition.replace(/-/g, " ")}
               </p>
               {/* Humidity + wind */}
               {(attrs?.humidity != null || attrs?.wind_speed != null) && (
-                <div className="mt-[clamp(0.3rem,0.9cqmin,0.75rem)] flex gap-[clamp(0.5rem,1.4cqmin,1.1rem)]">
+                <div className="mt-[clamp(0.2rem,0.5cqmin,0.5rem)] flex gap-[clamp(0.5rem,1.4cqmin,1.1rem)]">
                   {attrs?.humidity != null && (
-                    <span className="text-[clamp(0.65rem,2cqmin,1.1rem)] text-[#ffc174]/55 tabular-nums">
+                    <span className="text-[clamp(0.7rem,3cqmin,1.35rem)] text-[#ffc174]/55 tabular-nums">
                       {Math.round(attrs.humidity)}%
                     </span>
                   )}
                   {attrs?.wind_speed != null && (
-                    <span className="text-[clamp(0.65rem,2cqmin,1.1rem)] text-[#ffc174]/55 tabular-nums">
+                    <span className="text-[clamp(0.7rem,3cqmin,1.35rem)] text-[#ffc174]/55 tabular-nums">
                       {Math.round(attrs.wind_speed)}&thinsp;{attrs.wind_speed_unit ?? "km/h"}
                     </span>
                   )}
@@ -215,7 +215,7 @@ export function ClockWeatherCard() {
       {forecastDays.length > 0 && (
         <div
           data-clock-weather-forecast
-          className="min-h-0 items-center overflow-hidden px-[clamp(0.25rem,1cqmin,1rem)] py-[clamp(0.35rem,1.2cqmin,1rem)]"
+          className="min-h-0 items-center overflow-hidden px-[clamp(0.15rem,0.5cqmin,0.5rem)] py-[clamp(0.1rem,0.3cqmin,0.3rem)]"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${forecastDays.length}, minmax(0, 1fr))`,

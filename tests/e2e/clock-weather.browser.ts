@@ -114,3 +114,44 @@ test("Clock Weather content scales with the card dimensions", async ({ page }) =
   expect(largeMetrics.temperature).toBeGreaterThan(smallMetrics.temperature * 1.5);
   expect(largeMetrics.forecastIcon).toBeGreaterThan(smallMetrics.forecastIcon * 1.25);
 });
+
+test("Clock Weather uses the available space on a large card", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1200 });
+  await showClockWeatherCard(page, 7);
+
+  const card = page.locator('[data-dashboard-card="clock-card"]');
+  const metrics = await card.evaluate((element) => {
+    const time = element.querySelector<HTMLElement>("[data-clock-time]");
+    const date = element.querySelector<HTMLElement>("[data-clock-date]");
+    const temperature = element.querySelector<HTMLElement>(
+      "[data-current-temperature]"
+    );
+    const forecastIcon = element.querySelector<SVGElement>(
+      "[data-forecast-day] svg"
+    );
+
+    if (!time || !date || !temperature || !forecastIcon) {
+      throw new Error("Missing Clock Weather density elements");
+    }
+
+    const cardBox = element.getBoundingClientRect();
+    const timeBox = time.getBoundingClientRect();
+    const temperatureBox = temperature.getBoundingClientRect();
+
+    return {
+      leftInset: timeBox.left - cardBox.left,
+      rightInset: cardBox.right - temperatureBox.right,
+      time: Number.parseFloat(getComputedStyle(time).fontSize),
+      date: Number.parseFloat(getComputedStyle(date).fontSize),
+      temperature: Number.parseFloat(getComputedStyle(temperature).fontSize),
+      forecastIcon: forecastIcon.getBoundingClientRect().width,
+    };
+  });
+
+  expect(metrics.leftInset).toBeGreaterThanOrEqual(20);
+  expect(metrics.rightInset).toBeGreaterThanOrEqual(20);
+  expect(metrics.time).toBeGreaterThanOrEqual(120);
+  expect(metrics.date).toBeGreaterThanOrEqual(28);
+  expect(metrics.temperature).toBeGreaterThanOrEqual(105);
+  expect(metrics.forecastIcon).toBeGreaterThanOrEqual(48);
+});
