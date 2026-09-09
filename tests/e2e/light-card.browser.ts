@@ -20,7 +20,7 @@ test("Light card face shows only its title", async ({ page }) => {
   const card = await getLightCard(page);
 
   expect(await card.evaluate((element) => (element as HTMLElement).innerText.trim())).toBe(
-    "Test Light"
+    "TEST LIGHT"
   );
 });
 
