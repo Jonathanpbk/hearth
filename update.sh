@@ -8,6 +8,7 @@ readonly LIVE_CONTAINER="hearth"
 readonly TEST_CONTAINER="hearth-test"
 readonly LIVE_PORT="3080"
 readonly TEST_PORT="3089"
+readonly ROLLBACK_IMAGE="hearth:rollback"
 
 log() {
     printf '%s\n' "$*"
@@ -75,6 +76,16 @@ pwa_check() {
     log "PWA checks passed. Bundle: $app_bundle"
 }
 
+run_live_container() {
+    local image="$1"
+
+    docker run -d \
+        --name "$LIVE_CONTAINER" \
+        --restart unless-stopped \
+        -p "$LIVE_PORT:80" \
+        "$image" >/dev/null
+}
+
 cd "$APP_DIR"
 
 command -v git >/dev/null || fail "git is required"
@@ -94,7 +105,6 @@ fi
 readonly FULL_COMMIT="$(git rev-parse HEAD)"
 readonly COMMIT="${FULL_COMMIT:0:7}"
 readonly IMAGE="hearth:$COMMIT"
-readonly BACKUP_CONTAINER="hearth-backup-$(date +%Y%m%d-%H%M%S)"
 had_live_container=0
 
 if docker container inspect "$LIVE_CONTAINER" >/dev/null 2>&1; then
@@ -126,11 +136,15 @@ pwa_check "http://127.0.0.1:$TEST_PORT" "$FULL_COMMIT" || fail "Test PWA checks 
 cleanup_test_container
 
 if ((had_live_container)); then
+    current_image_id="$(docker inspect "$LIVE_CONTAINER" --format '{{.Image}}')"
+    log "Saving the current release as $ROLLBACK_IMAGE"
+    docker tag "$current_image_id" "$ROLLBACK_IMAGE"
+
     log "Stopping the current Hearth container"
     docker stop "$LIVE_CONTAINER" >/dev/null
-    if ! docker rename "$LIVE_CONTAINER" "$BACKUP_CONTAINER"; then
-        docker start "$LIVE_CONTAINER" >/dev/null
-        fail "The live container could not be renamed. The previous release was restarted"
+    if ! docker rm "$LIVE_CONTAINER" >/dev/null; then
+        docker start "$LIVE_CONTAINER" >/dev/null || true
+        fail "The live container could not be removed. The previous release was restarted"
     fi
 else
     log "No existing Hearth container was found. Starting an initial deployment"
@@ -141,58 +155,61 @@ rollback() {
     if ((!had_live_container)); then
         fail "Initial deployment failed. No previous release exists"
     fi
-    log "Deployment failed. Restoring $BACKUP_CONTAINER"
-    docker rename "$BACKUP_CONTAINER" "$LIVE_CONTAINER"
-    docker start "$LIVE_CONTAINER" >/dev/null
-    health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/" || \
+
+    log "Deployment failed. Restoring $ROLLBACK_IMAGE"
+    if ! run_live_container "$ROLLBACK_IMAGE"; then
+        fail "Rollback failed to start from $ROLLBACK_IMAGE"
+    fi
+    health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/healthz" || \
         fail "Rollback started, but its health check failed"
-    fail "Deployment failed. The previous release was restored"
+    fail "Deployment failed. The previous release was restored from $ROLLBACK_IMAGE"
 }
 
-if ! docker run -d \
-    --name "$LIVE_CONTAINER" \
-    --restart unless-stopped \
-    -p "$LIVE_PORT:80" \
-    "$IMAGE" >/dev/null; then
+if ! run_live_container "$IMAGE"; then
     rollback
 fi
 
 health_check "$LIVE_CONTAINER" "http://127.0.0.1:$LIVE_PORT/healthz" || rollback
 pwa_check "http://127.0.0.1:$LIVE_PORT" "$FULL_COMMIT" || rollback
 
-mapfile -t older_backups < <(
+mapfile -t legacy_backups < <(
     docker ps -a \
         --filter 'name=^/hearth-backup-' \
         --filter 'status=exited' \
-        --format '{{.Names}}' |
-        grep -vxF "$BACKUP_CONTAINER" || true
+        --format '{{.Names}}'
 )
 
-if ((${#older_backups[@]} > 0)); then
-    older_images=()
-    for older_backup in "${older_backups[@]}"; do
-        older_images+=("$(docker inspect "$older_backup" --format '{{.Config.Image}}')")
-    done
-
-    log "Removing older rollback containers"
-    if docker rm "${older_backups[@]}" >/dev/null; then
-        for older_image in "${older_images[@]}"; do
-            if ! docker image rm "$older_image" >/dev/null 2>&1; then
-                log "Unused image $older_image was not removed"
-            fi
-        done
-    else
-        log "An older rollback container was not removed"
+if ((${#legacy_backups[@]} > 0)); then
+    log "Removing legacy rollback containers"
+    if ! docker rm "${legacy_backups[@]}" >/dev/null; then
+        log "A legacy rollback container was not removed"
     fi
+fi
+
+mapfile -t stale_image_tags < <(
+    docker images \
+        --filter 'reference=hearth:*' \
+        --format '{{.Repository}}:{{.Tag}}' |
+        grep -vxF "$IMAGE" |
+        grep -vxF "$ROLLBACK_IMAGE" || true
+)
+
+if ((${#stale_image_tags[@]} > 0)); then
+    log "Removing older Hearth image tags"
+    for stale_image_tag in "${stale_image_tags[@]}"; do
+        if ! docker image rm "$stale_image_tag" >/dev/null 2>&1; then
+            log "Unused image tag $stale_image_tag was not removed"
+        fi
+    done
 fi
 
 trap - EXIT
 
 log "Hearth $COMMIT deployed successfully"
 if ((had_live_container)); then
-    log "Rollback container: $BACKUP_CONTAINER"
+    log "Rollback image: $ROLLBACK_IMAGE"
 else
-    log "Rollback container: none for initial deployment"
+    log "Rollback image: none for initial deployment"
 fi
 docker ps \
     --filter 'name=^/hearth$' \
