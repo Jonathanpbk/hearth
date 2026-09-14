@@ -52,6 +52,15 @@ describe("release readiness", () => {
     expect(updateScript).not.toContain('docker rename "$LIVE_CONTAINER"');
   });
 
+  it("labels the live container with the bundled Unraid icon", () => {
+    expect(updateScript).toContain(
+      'readonly UNRAID_ICON_URL="file://$APP_DIR/public/icons/icon-192.png"'
+    );
+    expect(updateScript).toContain(
+      '--label "net.unraid.docker.icon=$UNRAID_ICON_URL"'
+    );
+  });
+
   it("cleans legacy rollback containers after a successful deployment", () => {
     expect(updateScript).toContain("Removing legacy rollback containers");
     expect(updateScript).toContain("name=^/hearth-backup-");

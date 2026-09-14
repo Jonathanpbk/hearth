@@ -9,6 +9,7 @@ readonly TEST_CONTAINER="hearth-test"
 readonly LIVE_PORT="3080"
 readonly TEST_PORT="3089"
 readonly ROLLBACK_IMAGE="hearth:rollback"
+readonly UNRAID_ICON_URL="file://$APP_DIR/public/icons/icon-192.png"
 
 log() {
     printf '%s\n' "$*"
@@ -82,6 +83,7 @@ run_live_container() {
     docker run -d \
         --name "$LIVE_CONTAINER" \
         --restart unless-stopped \
+        --label "net.unraid.docker.icon=$UNRAID_ICON_URL" \
         -p "$LIVE_PORT:80" \
         "$image" >/dev/null
 }
