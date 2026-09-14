@@ -42,10 +42,20 @@ describe("release readiness", () => {
     expect(updateScript).toContain("/healthz");
   });
 
-  it("supports initial installation and rollback deployments", () => {
+  it("supports initial installation and image-based rollback deployments", () => {
     expect(updateScript).toContain("had_live_container=0");
     expect(updateScript).toContain("Starting an initial deployment");
-    expect(updateScript).toContain("Deployment failed. Restoring");
+    expect(updateScript).toContain('readonly ROLLBACK_IMAGE="hearth:rollback"');
+    expect(updateScript).toContain('docker tag "$current_image_id" "$ROLLBACK_IMAGE"');
+    expect(updateScript).toContain('run_live_container "$ROLLBACK_IMAGE"');
+    expect(updateScript).toContain("Deployment failed. Restoring $ROLLBACK_IMAGE");
+    expect(updateScript).not.toContain('docker rename "$LIVE_CONTAINER"');
+  });
+
+  it("cleans legacy rollback containers after a successful deployment", () => {
+    expect(updateScript).toContain("Removing legacy rollback containers");
+    expect(updateScript).toContain("name=^/hearth-backup-");
+    expect(updateScript).toContain("Removing older Hearth image tags");
   });
 
   it("validates tagged releases before publication", () => {
