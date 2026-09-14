@@ -47,9 +47,10 @@ The deployment script:
 - embeds the full Git commit in release diagnostics
 - validates Nginx, `/healthz`, PWA files, release metadata, and the recovery page
 - tests the image in a loopback-only container before replacing Hearth
-- retains the previous live container for rollback
-- restores the previous container after a failed live validation
-- removes older stopped rollback containers after success
+- tags the currently running image as `hearth:rollback` before replacing the live container
+- recreates `hearth` from `hearth:rollback` automatically if live validation fails
+- retains only the current image and rollback image after a successful deployment
+- removes stopped legacy `hearth-backup-*` containers created by older versions of the deployment script
 
 ## Health and version checks
 
@@ -79,13 +80,16 @@ Store the Home Assistant token separately. A restore on a new device requests it
 
 ## Manual rollback
 
-The update output prints the retained rollback container name. Replace the example name below with the printed value:
+The previous successfully deployed image is retained as `hearth:rollback`.
 
 ```bash
 docker rm -f hearth
-docker rename hearth-backup-YYYYMMDD-HHMMSS hearth
-docker start hearth
-curl -fsS http://127.0.0.1:3080/
+docker run -d \
+  --name hearth \
+  --restart unless-stopped \
+  -p 3080:80 \
+  hearth:rollback
+curl -fsS http://127.0.0.1:3080/healthz
 ```
 
 ## Development
